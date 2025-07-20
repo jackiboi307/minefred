@@ -1,6 +1,5 @@
-use crate::behavior::*;
+use crate::behavior::base::*;
 use crate::behavior::behaviors::*;
-use crate::update::UpdateData;
 
 use hecs::World as ECSWorld;
 use hecs::Entity as ECSEntityId;

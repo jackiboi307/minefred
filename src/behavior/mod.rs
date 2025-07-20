@@ -1,6 +1,10 @@
-pub mod render;
-pub mod behavior;
-pub mod behaviors;
+#![allow(dead_code)]
+#![allow(unused_imports)]
 
-mod base;
-pub use base::*;
+pub mod behaviors;
+pub mod base;
+
+mod render;
+
+mod behavior;
+pub use behavior::*;

@@ -4,10 +4,9 @@ extern crate hecs;
 mod game;
 mod behavior;
 mod components;
-mod update;
 
 use game::Game;
-use crate::update::UpdateData;
+use behavior::UpdateData;
 
 use sdl2::event::Event;
 use sdl2::pixels::Color;
