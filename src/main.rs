@@ -2,7 +2,7 @@ extern crate sdl2;
 extern crate hecs;
 
 mod game;
-mod behaviors;
+mod behavior;
 mod components;
 mod update;
 

@@ -1,11 +1,12 @@
-use crate::behaviors::*;
+use crate::behavior::*;
+use crate::behavior::behaviors::*;
 use crate::update::UpdateData;
 
 use hecs::World as ECSWorld;
 use hecs::Entity as ECSEntityId;
 
 struct GameObject {
-    behavior: Box<dyn GameObjectBehavior>,
+    behavior: GameObjectBehavior,
     id: ECSEntityId,
 }
 
@@ -23,31 +24,29 @@ impl Game {
     }
 
     pub fn init(&mut self) {
-        self.spawn_entity(TestBehavior{});
+        self.spawn_entity(TestBehavior);
     }
 
     pub fn render(&self, canvas: &mut Canvas) {
         for entity in &self.entities {
-            entity.behavior.render(&self.ecs, entity.id, canvas);
+            (entity.behavior.render)(&self.ecs, entity.id, canvas);
         }
     }
 
     pub fn update(&mut self, update_data: &UpdateData) {
         for entity in &mut self.entities {
-            entity.behavior.update(&mut self.ecs, entity.id, &update_data);
+            (entity.behavior.update)(&mut self.ecs, entity.id, &update_data);
         }
     }
 
-    fn spawn_entity
-            <T: GameObjectBehavior + 'static>
-            (&mut self, behavior: T) -> ECSEntityId {
-    
+    fn spawn_entity(&mut self, behavior: GameObjectBehavior) -> ECSEntityId {
         let id = self.ecs_create_entity();
         let go = GameObject{
-            behavior: Box::new(behavior),
+            behavior,
             id,
         };
-        go.behavior.init(&mut self.ecs, id);
+
+        (go.behavior.init)(&mut self.ecs, id);
         self.entities.push(go);
 
         id

@@ -1,4 +1,4 @@
-use crate::behaviors::base::*;
+use crate::behavior::base::*;
 
 use sdl2::rect::Rect;
 use sdl2::pixels::Color;
