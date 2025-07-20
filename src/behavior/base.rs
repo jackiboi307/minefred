@@ -1,5 +1,8 @@
 // Almost everything required to define new behaviors.
 
+#![allow(dead_code)]
+#![allow(unused_imports)]
+
 pub use crate::behavior::*;
 
 pub use crate::components::*;
