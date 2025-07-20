@@ -1,0 +1,8 @@
+[package]
+name = "minefred"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+hecs = "0.10.5"
+sdl2 = "0.38.0"
