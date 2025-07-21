@@ -1,6 +1,6 @@
 use crate::behavior::base::*;
-use crate::types::{Position, Rect};
-use crate::TILE_SIZE;
+use crate::types::Position;
+use crate::constants::TILE_SIZE;
 
 use sdl2::rect;
 use sdl2::pixels::Color;
@@ -9,6 +9,7 @@ pub fn render(
         ecs: &ECSWorld,
         ecs_id: ECSEntityId,
         info: &RenderInfo,
+        _: &Textures,
         canvas: &mut Canvas) {
 
     let pos = ecs.get::<&Position>(ecs_id).unwrap();

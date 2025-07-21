@@ -1,7 +1,11 @@
 use crate::behavior::base::*;
 use crate::behavior::behaviors::*;
 use crate::types::*;
-use crate::{SCREEN_X, SCREEN_Y};
+use crate::constants::{SCREEN_X, SCREEN_Y, GRID_SIZE};
+use crate::textures::{Texture, TextureId, Textures, gen_texture};
+
+use sdl2::render::TextureCreator;
+use sdl2::video::WindowContext;
 
 use hecs::World as ECSWorld;
 use hecs::Entity as ECSEntityId;
@@ -19,26 +23,31 @@ const GAME_OBJECT_PLACEHOLDER: GameObject = GameObject{
     id: ECSEntityId::DANGLING,
 };
 
-type Chunk = [[GameObject; 16]; 16];
+type Chunk = [[GameObject; GRID_SIZE]; GRID_SIZE];
 
-pub struct Game {
+pub struct Game<'a> {
     ecs: ECSWorld,
     entities: Vec<GameObject>,
     player: ECSEntityId,
     grid: HashMap<GridPos, Chunk>,
+    textures: Textures<'a>,
 }
 
-impl Game {
+impl<'a> Game<'a> {
     pub fn new() -> Self {
         let mut s = Self{
             ecs: ECSWorld::new(),
             entities: Vec::new(),
             grid: HashMap::new(),
+            textures: HashMap::new(),
             player: ECSEntityId::DANGLING,
         };
 
         Self::init(&mut s);
-        Self::generate_chunk(&mut s, GridPos::new(0, 0));
+        Self::generate_chunk(&mut s, GridPos::new(0,   0));
+        Self::generate_chunk(&mut s, GridPos::new(-1,  0));
+        Self::generate_chunk(&mut s, GridPos::new(0,  -1));
+        Self::generate_chunk(&mut s, GridPos::new(-1, -1));
 
         s
     }
@@ -46,6 +55,15 @@ impl Game {
     fn init(&mut self) {
         self.player = self.spawn_entity(PlayerBehavior);
         self.spawn_entity(TestBehavior);
+    }
+
+    pub fn init_textures(&mut self, texture_creator: &'a TextureCreator<WindowContext>) {
+        let texture = gen_texture(&texture_creator);
+        self.register_texture("test", texture);
+    }
+
+    fn register_texture(&mut self, id: &'static str, texture: Texture<'a>) {
+        self.textures.insert(TextureId(id,), texture);
     }
 
     pub fn render(&self, canvas: &mut Canvas) {
@@ -66,13 +84,13 @@ impl Game {
                 for (column, tile) in chunk[row].iter().enumerate() {
                     render_info.tile = Some(TileInfo{
                         pos: GridPos::new(
-                            pos.x + column as PosType,
-                            pos.y + row as PosType,
+                            pos.x * GRID_SIZE as i32 + column as PosType,
+                            pos.y * GRID_SIZE as i32 + row as PosType,
                         ),
                     });
 
                     (tile.behavior.render)
-                    (&self.ecs, tile.id, &render_info, canvas);
+                    (&self.ecs, tile.id, &render_info, &self.textures, canvas);
                 }
             }
         }
@@ -81,7 +99,7 @@ impl Game {
 
         for entity in &self.entities {
             (entity.behavior.render)
-            (&self.ecs, entity.id, &render_info, canvas);
+            (&self.ecs, entity.id, &render_info, &self.textures, canvas);
         }
 
     }
@@ -91,6 +109,10 @@ impl Game {
             (entity.behavior.update)
             (&mut self.ecs, entity.id, &update_data);
         }
+    }
+
+    fn ecs_create_entity(&mut self) -> ECSEntityId {
+        self.ecs.spawn(())
     }
 
     fn create_game_object(&mut self, behavior: GameObjectBehavior) -> GameObject {
@@ -109,14 +131,10 @@ impl Game {
         game_obj.id
     }
 
-    fn ecs_create_entity(&mut self) -> ECSEntityId {
-        self.ecs.spawn(())
-    }
-
     fn generate_chunk(&mut self, pos: GridPos) {
-        let mut chunk = [[GAME_OBJECT_PLACEHOLDER; 16]; 16];
-        for row in 0..16 {
-            for col in 0..16 {
+        let mut chunk = [[GAME_OBJECT_PLACEHOLDER; GRID_SIZE]; GRID_SIZE];
+        for row in 0..GRID_SIZE {
+            for col in 0..GRID_SIZE {
                 chunk[row][col] = self.create_game_object(TestTileBehavior);
             }
         }

@@ -1,5 +1,6 @@
 use crate::behavior::base::*;
 use crate::types::*;
+use crate::textures::Textures;
 
 use sdl2::event::Event;
 use sdl2::keyboard::{
@@ -23,6 +24,7 @@ pub struct GameObjectBehavior {
         _ecs: &ECSWorld,
         _ecs_id: ECSEntityId,
         _render_info: &RenderInfo,
+        textures: &Textures,
         _canvas: &mut Canvas),
 }
 

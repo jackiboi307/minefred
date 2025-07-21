@@ -6,6 +6,7 @@
 pub use crate::behavior::*;
 pub use crate::components::*;
 pub use crate::behavior::behaviors::DefaultBehavior;
+pub use crate::textures::Textures;
 
 pub use hecs::World as ECSWorld;
 pub use hecs::Entity as ECSEntityId;
