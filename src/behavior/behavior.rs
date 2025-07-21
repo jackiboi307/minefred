@@ -8,6 +8,7 @@ use sdl2::keyboard::{
     PressedScancodeIterator,
 };
 
+#[derive(Copy, Clone)]
 pub struct GameObjectBehavior {
     pub init: fn(
         _ecs: &mut ECSWorld,
@@ -48,9 +49,14 @@ impl UpdateData<'_> {
     }
 }
 
+pub struct TileInfo {
+    pub pos: GridPos,
+}
+
 #[allow(dead_code)]
 pub struct RenderInfo {
     pub offset: Offset,
     pub screen: Rect,
     pub scale: f32,
+    pub tile: Option<TileInfo>,
 }

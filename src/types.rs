@@ -1,14 +1,14 @@
 // Types
 
-pub type PosType = i32;
+pub type PosType  = i32;
 pub type SizeType = u16;
 
 // General stuff
 
 // Position
 
-#[derive(Clone, Copy)]
-pub struct Position {
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+pub struct Position { // TODO byt namn
     pub x: PosType,
     pub y: PosType,
 }
@@ -21,6 +21,7 @@ impl Position {
 
 // Position aliases
 pub type Offset = Position;
+pub type GridPos = Position;
 
 // Rect
 

@@ -6,3 +6,6 @@ pub use test::*;
 
 mod player;
 pub use player::*;
+
+mod test_tile;
+pub use test_tile::*;

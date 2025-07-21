@@ -4,19 +4,28 @@ extern crate rand;
 
 mod game;
 mod types;
+mod random;
 mod behavior;
 mod components;
 
 use game::Game;
 use behavior::UpdateData;
+use types::*;
 
 use sdl2::event::Event;
 use sdl2::pixels::Color;
 
 use std::time::Duration;
 
-pub const SCREEN_X: u16 = 800;
-pub const SCREEN_Y: u16 = 600;
+// Constants
+
+pub const SCREEN_X: SizeType = 800;
+pub const SCREEN_Y: SizeType = 600;
+
+pub const TILE_SIZE: Rect = Rect{width: 50, height: 50};
+
+pub const MIN: i32 = i32::MIN;
+pub const MAX: i32 = i32::MAX;
 
 impl Game {
     fn run(&mut self) {
