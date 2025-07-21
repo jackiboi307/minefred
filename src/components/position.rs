@@ -1,1 +1,6 @@
-pub struct Position { pub x: i32, pub y: i32 }
+use crate::types;
+
+pub struct Position {
+    pub x: types::Pos,
+    pub y: types::Pos,
+}

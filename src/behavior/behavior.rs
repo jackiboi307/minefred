@@ -1,4 +1,5 @@
 use crate::behavior::base::*;
+use crate::types::*;
 
 use sdl2::event::Event;
 use sdl2::keyboard::{
@@ -18,10 +19,10 @@ pub struct GameObjectBehavior {
         _update_data: &UpdateData),
 
     pub render: fn(
-        &ECSWorld,
-        ECSEntityId,
-        &mut Canvas
-    ),
+        _ecs: &ECSWorld,
+        _ecs_id: ECSEntityId,
+        _render_info: &RenderInfo,
+        _canvas: &mut Canvas),
 }
 
 #[allow(dead_code)]
@@ -45,4 +46,11 @@ impl UpdateData<'_> {
     pub fn pressed_keys(&self) -> PressedScancodeIterator<'_> {
         self.keys.pressed_scancodes()
     }
+}
+
+#[allow(dead_code)]
+pub struct RenderInfo {
+    pub offset: Offset,
+    pub screen: Rect,
+    pub scale: f32,
 }

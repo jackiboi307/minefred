@@ -12,6 +12,7 @@ fn default_update(
 fn default_render(
     _ecs: &ECSWorld,
     _ecs_id: ECSEntityId,
+    _render_info: &RenderInfo,
     _canvas: &mut Canvas) {}
 
 #[allow(non_upper_case_globals)]

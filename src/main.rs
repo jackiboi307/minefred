@@ -1,7 +1,9 @@
 extern crate sdl2;
 extern crate hecs;
+extern crate rand;
 
 mod game;
+mod types;
 mod behavior;
 mod components;
 
@@ -13,12 +15,11 @@ use sdl2::pixels::Color;
 
 use std::time::Duration;
 
-const SCREEN_X: u32 = 800;
-const SCREEN_Y: u32 = 600;
+pub const SCREEN_X: u16 = 800;
+pub const SCREEN_Y: u16 = 600;
 
 impl Game {
     fn run(&mut self) {
-        self.init();
         self.run_sdl();
     }
 
@@ -29,7 +30,7 @@ impl Game {
 
         // Create a window
         let window = video_subsystem
-            .window("Minefred", SCREEN_X, SCREEN_Y)
+            .window("Minefred", SCREEN_X.into(), SCREEN_Y.into())
             .position_centered()
             .build()
             .unwrap();
