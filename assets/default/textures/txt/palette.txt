@@ -1,0 +1,5 @@
+#f00 red
+#0f0 green
+#00f blue
+#840 brown
+#420 dark_brown

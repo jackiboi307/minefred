@@ -1,14 +1,15 @@
 extern crate sdl2;
 extern crate hecs;
 extern crate rand;
+extern crate serde_json;
 
 mod game;
 mod types;
-mod random;
 mod behavior;
 mod textures;
 mod constants;
 mod components;
+// mod random;
 
 use game::Game;
 use behavior::UpdateData;

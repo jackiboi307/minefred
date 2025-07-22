@@ -2,7 +2,7 @@ use crate::behavior::base::*;
 use crate::behavior::behaviors::*;
 use crate::types::*;
 use crate::constants::{SCREEN_X, SCREEN_Y, GRID_SIZE};
-use crate::textures::{Texture, TextureId, Textures, gen_texture};
+use crate::textures::{Textures, load_textures};
 
 use sdl2::render::TextureCreator;
 use sdl2::video::WindowContext;
@@ -58,13 +58,13 @@ impl<'a> Game<'a> {
     }
 
     pub fn init_textures(&mut self, texture_creator: &'a TextureCreator<WindowContext>) {
-        let texture = gen_texture(&texture_creator);
-        self.register_texture("test", texture);
+        load_textures(&texture_creator, &mut self.textures);
+        // self.register_texture("test", texture);
     }
 
-    fn register_texture(&mut self, id: &'static str, texture: Texture<'a>) {
-        self.textures.insert(TextureId(id,), texture);
-    }
+    // fn register_texture(&mut self, id: &'static str, texture: Texture<'a>) {
+    //     self.textures.insert(TextureId(id,), texture);
+    // }
 
     pub fn render(&self, canvas: &mut Canvas) {
         let player = self.ecs.get::<&Position>(self.player).unwrap();

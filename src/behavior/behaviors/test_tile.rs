@@ -1,6 +1,6 @@
 use crate::behavior::base::*;
 use crate::constants::TILE_SIZE;
-use crate::textures::TextureId;
+use crate::textures::{TextureId, copy_texture};
 
 use sdl2::rect;
 
@@ -8,7 +8,7 @@ fn init(
         ecs: &mut ECSWorld, 
         ecs_id: ECSEntityId) {
 
-    ecs.insert(ecs_id, (TextureId("test",),)).unwrap();
+    ecs.insert(ecs_id, (TextureId::new("dirt"),)).unwrap();
 }
 
 pub fn render(
@@ -24,15 +24,15 @@ pub fn render(
         info.offset);
 
     let texture = ecs.get::<&TextureId>(ecs_id).unwrap();
-    let texture = textures.get(&texture).unwrap();
+    let texture = &textures.get(&texture).unwrap();
 
-    canvas.copy(&texture, None, Some(
+    copy_texture(canvas, texture, 
         rect::Rect::new(
             pos.x + (TILE_SIZE.width  as i32 - 1) * info.tile.as_ref().unwrap().pos.x,
             pos.y + (TILE_SIZE.height as i32 - 1) * info.tile.as_ref().unwrap().pos.y,
             TILE_SIZE.width.into(),
             TILE_SIZE.height.into(),
-    ))).unwrap();
+    ));
 }
 
 #[allow(non_upper_case_globals)]
