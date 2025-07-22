@@ -13,7 +13,8 @@ use sdl2::keyboard::{
 pub struct GameObjectBehavior {
     pub init: fn(
         _ecs: &mut ECSWorld,
-        _ecs_id: ECSEntityId),
+        _ecs_id: ECSEntityId,
+        _textures: &Textures),
 
     pub update: fn(
         _ecs: &mut ECSWorld,

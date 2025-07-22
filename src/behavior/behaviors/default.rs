@@ -2,7 +2,8 @@ use crate::behavior::base::*;
 
 fn default_init(
     _ecs: &mut ECSWorld,
-    _ecs_id: ECSEntityId) {}
+    _ecs_id: ECSEntityId,
+    _textures: &Textures) {}
 
 fn default_update(
     _ecs: &mut ECSWorld,

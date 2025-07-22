@@ -35,7 +35,7 @@ pub struct Game<'a> {
 
 impl<'a> Game<'a> {
     pub fn new() -> Self {
-        let mut s = Self{
+        let s = Self{
             ecs: ECSWorld::new(),
             entities: Vec::new(),
             grid: HashMap::new(),
@@ -43,28 +43,24 @@ impl<'a> Game<'a> {
             player: ECSEntityId::DANGLING,
         };
 
-        Self::init(&mut s);
-        Self::generate_chunk(&mut s, GridPos::new(0,   0));
-        Self::generate_chunk(&mut s, GridPos::new(-1,  0));
-        Self::generate_chunk(&mut s, GridPos::new(0,  -1));
-        Self::generate_chunk(&mut s, GridPos::new(-1, -1));
+        // Self::init(&mut s);
 
         s
     }
 
-    fn init(&mut self) {
+    pub fn init(&mut self) {
         self.player = self.spawn_entity(PlayerBehavior);
         self.spawn_entity(TestBehavior);
+
+        self.generate_chunk(GridPos::new(0,   0));
+        self.generate_chunk(GridPos::new(-1,  0));
+        self.generate_chunk(GridPos::new(0,  -1));
+        self.generate_chunk(GridPos::new(-1, -1));
     }
 
     pub fn init_textures(&mut self, texture_creator: &'a TextureCreator<WindowContext>) {
         load_textures(&texture_creator, &mut self.textures);
-        // self.register_texture("test", texture);
     }
-
-    // fn register_texture(&mut self, id: &'static str, texture: Texture<'a>) {
-    //     self.textures.insert(TextureId(id,), texture);
-    // }
 
     pub fn render(&self, canvas: &mut Canvas) {
         let player = self.ecs.get::<&Position>(self.player).unwrap();
@@ -121,7 +117,7 @@ impl<'a> Game<'a> {
             behavior,
             id,
         };
-        (game_obj.behavior.init)(&mut self.ecs, game_obj.id);
+        (game_obj.behavior.init)(&mut self.ecs, game_obj.id, &self.textures);
         game_obj
     }
 

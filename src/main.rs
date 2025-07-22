@@ -5,11 +5,11 @@ extern crate serde_json;
 
 mod game;
 mod types;
+mod random;
 mod behavior;
 mod textures;
 mod constants;
 mod components;
-// mod random;
 
 use game::Game;
 use behavior::UpdateData;
@@ -39,6 +39,7 @@ fn run() {
 
     let mut game = Game::new();
     game.init_textures(&texture_creator);
+    game.init();
 
     // Main loop
     'main: loop {

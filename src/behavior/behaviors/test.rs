@@ -3,7 +3,8 @@ use crate::behavior::render::rect::render;
 
 fn init(
         ecs: &mut ECSWorld, 
-        ecs_id: ECSEntityId) {
+        ecs_id: ECSEntityId,
+        _: &Textures) {
 
     ecs.insert(ecs_id, (Position::new(0, 0),)).unwrap();
 }

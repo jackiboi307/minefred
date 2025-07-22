@@ -1,5 +1,6 @@
 use crate::constants::{STANDARD_TILE_TEXTURE_SIZE};
 use crate::behavior::base::Canvas;
+use crate::random;
 
 use sdl2::render::TextureCreator;
 pub use sdl2::render::Texture as SDLTexture;
@@ -11,12 +12,48 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 
-#[derive(Eq, Hash, PartialEq)]
-pub struct TextureId(pub String);
+enum Direction {
+    TWELVE,
+    THREE,
+    SIX,
+    NINE,
+}
 
-impl TextureId {
-    pub fn new(string: &'static str) -> Self {
-        Self(string.to_string())
+impl Direction {
+    fn degrees(&self) -> f64 {
+        match self {
+            Self::TWELVE => 0.0,
+            Self::THREE  => 90.0,
+            Self::SIX    => 180.0,
+            Self::NINE   => 270.0,
+        }
+    }
+}
+
+pub struct TextureComponent{
+    id: String,
+    direction: Option<Direction>,
+}
+
+impl TextureComponent {
+    pub fn new(textures: &Textures, string: &'static str) -> Self {
+        let id = string.to_string();
+        let direction =
+            if textures.get(&id).unwrap().properties.random_rotate {
+                Some(match random::int(0..=3) {
+                    0 => Direction::TWELVE,
+                    1 => Direction::THREE,
+                    2 => Direction::SIX,
+                    _ => Direction::NINE,
+                })
+            } else {
+                None
+            };
+
+        Self{
+            id,
+            direction,
+        }
     }
 }
 
@@ -40,7 +77,7 @@ impl<'a> Texture<'a> {
     }
 }
 
-pub type Textures<'a> = HashMap<TextureId, Texture<'a>>;
+pub type Textures<'a> = HashMap<String, Texture<'a>>;
 
 pub fn load_textures
         <'a>(
@@ -75,14 +112,24 @@ pub fn load_textures
             }
         }).unwrap();
 
-        textures.insert(TextureId(id), Texture::new(texture));
+        textures.insert(id, Texture::new(texture));
     }
 }
 
-pub fn copy_texture(canvas: &mut Canvas, texture: &Texture, rect: rect::Rect) {
-    canvas.copy(
+pub fn copy_texture(
+        canvas: &mut Canvas,
+        textures: &Textures,
+        texture_component: &TextureComponent,
+        rect: rect::Rect) {
+
+    let texture = &textures.get(&texture_component.id).unwrap();
+    canvas.copy_ex(
         &texture.texture,
         None,
         Some(rect),
+        texture_component.direction.as_ref().unwrap_or_else(|| &Direction::TWELVE).degrees(),
+        None,
+        false,
+        false,
     ).unwrap();
 }
