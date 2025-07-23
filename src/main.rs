@@ -19,7 +19,7 @@ use types::Error;
 use sdl2::event::Event;
 use sdl2::pixels::Color;
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 const FPS: u64 = 60;
 
@@ -45,6 +45,8 @@ fn run() -> Result<(), Error> {
 
     // Main loop
     'main: loop {
+        let start_time = Instant::now();
+
         let mut events = Vec::<Event>::new();
 
         // Handle events
@@ -76,8 +78,11 @@ fn run() -> Result<(), Error> {
         // Present the canvas
         canvas.present();
 
+        let elapsed_time = start_time.elapsed().as_millis() as u64;
+
         // Wait for a short duration
-        std::thread::sleep(Duration::from_millis(1000 / FPS));
+        std::thread::sleep(Duration::from_millis(
+            (1000 / FPS).saturating_sub(elapsed_time)));
     }
 
     Ok(())
