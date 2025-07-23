@@ -1,12 +1,15 @@
 use crate::behavior::base::*;
-use crate::behavior::render::rect::render;
+use crate::behavior::render::texture::render;
 
 fn init(
         ecs: &mut ECSWorld, 
         ecs_id: ECSEntityId,
-        _: &Textures) -> Result<(), Error> {
+        textures: &Textures) -> Result<(), Error> {
 
-    ecs.insert(ecs_id, (Position::new(0.0, 0.0),))?;
+    ecs.insert(ecs_id, (
+        Position::new(0.0, 0.0),
+        TextureComponent::new(&textures, "error"),
+    ))?;
     Ok(())
 }
 

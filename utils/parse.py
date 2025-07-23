@@ -43,7 +43,7 @@ def parse_palette(path=None, start_palette=None, text=None):
 		with open(path) as file:
 			text = file.read()
 		
-	palette = start_palette if start_palette else \
+	palette = dict(start_palette) if start_palette else \
 		{" ": (0, 0, 0, 0)}
 	
 	for num, line in enumerate(text.splitlines()):
@@ -67,7 +67,7 @@ def parse_texture(path, palette):
 	with open(path) as file:
 		text = file.read()
 		
-	spl = text.split("\n=\n", 1)
+	spl = text.split("\n\n", 1)
 	if len(spl) == 2:
 		text, tail = spl
 		palette = parse_palette(text=tail, start_palette=palette)

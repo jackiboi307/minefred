@@ -34,7 +34,6 @@ fn run() -> Result<(), Error> {
         .position_centered()
         .build()?;
 
-    // Create a canvas
     let mut canvas = window.into_canvas().build()?;
     let mut event_pump = sdl_context.event_pump()?;
     let texture_creator = canvas.texture_creator();

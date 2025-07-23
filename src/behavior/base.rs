@@ -6,7 +6,7 @@
 pub use crate::behavior::*;
 pub use crate::components::*;
 pub use crate::behavior::behaviors::DefaultBehavior;
-pub use crate::textures::Textures;
+pub use crate::textures::{Textures, TextureComponent};
 pub use crate::types::Error;
 
 pub use hecs::World as ECSWorld;

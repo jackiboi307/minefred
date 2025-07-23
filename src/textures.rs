@@ -3,7 +3,7 @@ use crate::behavior::base::Canvas;
 use crate::random;
 use crate::types::Error;
 
-use sdl2::render::TextureCreator;
+use sdl2::render::{TextureCreator, BlendMode};
 pub use sdl2::render::Texture as SDLTexture;
 use sdl2::video::WindowContext;
 use sdl2::pixels::PixelFormatEnum;
@@ -33,56 +33,44 @@ impl Direction {
 
 pub struct TextureComponent{
     id: String,
-    direction: Option<Direction>,
+    direction: Direction,
+    valid: bool,
 }
 
 impl TextureComponent {
-    pub fn new(textures: &Textures, string: &'static str) -> Self {
-        let id = string.to_string();
-        let texture = textures.get(&id);
-        if texture.is_none() {
-            Self{
-                id,
-                direction: None
-            }
-        } else {
-            let texture = texture.unwrap();
-            let direction =
-                if texture.properties.random_rotate {
-                    Some(match random::int(0..=3) {
-                        0 => Direction::TWELVE,
-                        1 => Direction::THREE,
-                        2 => Direction::SIX,
-                        _ => Direction::NINE,
-                    })
-                } else {
-                    None
-                };
-
-            Self{
-                id,
-                direction,
-            }
+    pub fn new(textures: &Textures, id: &'static str) -> Self {
+        Self{
+            id: id.to_string(),
+            direction: Direction::TWELVE,
+            valid: textures.get(id).is_some(),
         }
+    }
+
+    pub fn random_direction(mut self) -> Self {
+        if !self.valid { return self }
+
+        self.direction =
+            match random::int(0..=3) {
+                0 => Direction::TWELVE,
+                1 => Direction::THREE,
+                2 => Direction::SIX,
+                _ => Direction::NINE,
+            };
+
+        self
     }
 }
 
-struct TextureProperties {
-    random_rotate: bool,
-}
+// TODO remove this struct if it proves to be unnecessary
 
 pub struct Texture<'a> {
     texture: SDLTexture<'a>,
-    properties: TextureProperties,
 }
 
 impl<'a> Texture<'a> {
     fn new(texture: SDLTexture<'a>) -> Self {
         Self{
             texture,
-            properties: TextureProperties{
-                random_rotate: true,
-            },
         }
     }
 }
@@ -107,7 +95,9 @@ pub fn load_textures
                 STANDARD_TILE_TEXTURE_SIZE,
                 STANDARD_TILE_TEXTURE_SIZE)?;
             // .map_err(|e| e.to_string());
+            //
 
+        texture.set_blend_mode(BlendMode::Blend);
         texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
             for y in 0..texture_arr.len() {
                 for x in 0..texture_arr[0].len() {
@@ -144,7 +134,7 @@ pub fn copy_texture(
         &texture.texture,
         None,
         Some(rect),
-        texture_component.direction.as_ref().unwrap_or_else(|| &Direction::TWELVE).degrees(),
+        texture_component.direction.degrees(),
         None,
         false,
         false,

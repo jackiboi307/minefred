@@ -1,27 +1,15 @@
 use crate::behavior::base::*;
-use crate::textures::{TextureComponent, copy_texture};
+use crate::behavior::render::texture::render;
 
 fn init(
         ecs: &mut ECSWorld, 
         ecs_id: ECSEntityId,
         textures: &Textures) -> Result<(), Error> {
 
-    let texture = TextureComponent::new(&textures, "dirt");
+    let texture =
+        TextureComponent::new(&textures, "dirt")
+        .random_direction();
     ecs.insert(ecs_id, (texture,))?;
-    Ok(())
-}
-
-pub fn render(
-        ecs: &ECSWorld,
-        ecs_id: ECSEntityId,
-        info: &RenderInfo,
-        textures: &Textures,
-        canvas: &mut Canvas) -> Result<(), Error> {
-
-    let texture = ecs.get::<&TextureComponent>(ecs_id)?;
-
-    copy_texture(canvas, &textures, &texture, info.rect)?;
-
     Ok(())
 }
 
