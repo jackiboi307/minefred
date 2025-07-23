@@ -1,6 +1,7 @@
 use crate::constants::{STANDARD_TILE_TEXTURE_SIZE};
 use crate::behavior::base::Canvas;
 use crate::random;
+use crate::types::Error;
 
 use sdl2::render::TextureCreator;
 pub use sdl2::render::Texture as SDLTexture;
@@ -38,21 +39,30 @@ pub struct TextureComponent{
 impl TextureComponent {
     pub fn new(textures: &Textures, string: &'static str) -> Self {
         let id = string.to_string();
-        let direction =
-            if textures.get(&id).unwrap().properties.random_rotate {
-                Some(match random::int(0..=3) {
-                    0 => Direction::TWELVE,
-                    1 => Direction::THREE,
-                    2 => Direction::SIX,
-                    _ => Direction::NINE,
-                })
-            } else {
-                None
-            };
+        let texture = textures.get(&id);
+        if texture.is_none() {
+            Self{
+                id,
+                direction: None
+            }
+        } else {
+            let texture = texture.unwrap();
+            let direction =
+                if texture.properties.random_rotate {
+                    Some(match random::int(0..=3) {
+                        0 => Direction::TWELVE,
+                        1 => Direction::THREE,
+                        2 => Direction::SIX,
+                        _ => Direction::NINE,
+                    })
+                } else {
+                    None
+                };
 
-        Self{
-            id,
-            direction,
+            Self{
+                id,
+                direction,
+            }
         }
     }
 }
@@ -83,21 +93,21 @@ pub fn load_textures
         <'a>(
             texture_creator: &'a TextureCreator<WindowContext>,
             textures: &mut Textures<'a>
-        ) {
+        ) -> Result<(), Error> {
 
-    let file = File::open("assets/default/textures/textures.json").unwrap();
+    let file = File::open("assets/default/textures/textures.json")?;
     let reader = BufReader::new(file);
     let hashmap: HashMap<String, Vec<Vec<(u8, u8, u8, u8)>>>
-        = serde_json::from_reader(reader).unwrap();
+        = serde_json::from_reader(reader)?;
 
     for (id, texture_arr) in hashmap {
         let mut texture = texture_creator
             .create_texture_streaming(
                 PixelFormatEnum::RGBA32,
                 STANDARD_TILE_TEXTURE_SIZE,
-                STANDARD_TILE_TEXTURE_SIZE)
-            .map_err(|e| e.to_string()).unwrap();
-        
+                STANDARD_TILE_TEXTURE_SIZE)?;
+            // .map_err(|e| e.to_string());
+
         texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
             for y in 0..texture_arr.len() {
                 for x in 0..texture_arr[0].len() {
@@ -110,19 +120,26 @@ pub fn load_textures
                     buffer[offset + 3] = color.3;
                 }
             }
-        }).unwrap();
+        })?;
 
         textures.insert(id, Texture::new(texture));
     }
+
+    Ok(())
 }
 
 pub fn copy_texture(
         canvas: &mut Canvas,
         textures: &Textures,
         texture_component: &TextureComponent,
-        rect: rect::Rect) {
+        rect: rect::Rect) -> Result<(), Error> {
 
-    let texture = &textures.get(&texture_component.id).unwrap();
+    let texture = 
+        &textures.get(&texture_component.id)
+        .unwrap_or_else(|| {
+            textures.get("error").expect("Could not get texture 'error'")
+        });
+
     canvas.copy_ex(
         &texture.texture,
         None,
@@ -131,5 +148,7 @@ pub fn copy_texture(
         None,
         false,
         false,
-    ).unwrap();
+    )?;
+
+    Ok(())
 }

@@ -1,11 +1,12 @@
 use crate::behavior::base::*;
 use crate::behavior::behaviors::*;
 use crate::types::*;
-use crate::constants::{SCREEN_X, SCREEN_Y, GRID_SIZE};
+use crate::constants::{SCREEN_X, SCREEN_Y, CHUNK_SIZE};
 use crate::textures::{Textures, load_textures};
 
 use sdl2::render::TextureCreator;
 use sdl2::video::WindowContext;
+use sdl2::rect;
 
 use hecs::World as ECSWorld;
 use hecs::Entity as ECSEntityId;
@@ -23,7 +24,7 @@ const GAME_OBJECT_PLACEHOLDER: GameObject = GameObject{
     id: ECSEntityId::DANGLING,
 };
 
-type Chunk = [[GameObject; GRID_SIZE]; GRID_SIZE];
+type Chunk = [[GameObject; CHUNK_SIZE]; CHUNK_SIZE];
 
 pub struct Game<'a> {
     ecs: ECSWorld,
@@ -31,6 +32,7 @@ pub struct Game<'a> {
     player: ECSEntityId,
     grid: HashMap<GridPos, Chunk>,
     textures: Textures<'a>,
+    tile_scale: u32,
 }
 
 impl<'a> Game<'a> {
@@ -41,6 +43,7 @@ impl<'a> Game<'a> {
             grid: HashMap::new(),
             textures: HashMap::new(),
             player: ECSEntityId::DANGLING,
+            tile_scale: 50,
         };
 
         // Self::init(&mut s);
@@ -58,52 +61,72 @@ impl<'a> Game<'a> {
         self.generate_chunk(GridPos::new(-1, -1));
     }
 
-    pub fn init_textures(&mut self, texture_creator: &'a TextureCreator<WindowContext>) {
-        load_textures(&texture_creator, &mut self.textures);
+    pub fn init_textures
+            (&mut self, texture_creator: &'a TextureCreator<WindowContext>) 
+            -> Result<(), Error> {
+        load_textures(&texture_creator, &mut self.textures)
     }
 
-    pub fn render(&self, canvas: &mut Canvas) {
-        let player = self.ecs.get::<&Position>(self.player).unwrap();
+    pub fn render(&self, canvas: &mut Canvas) -> Result<(), Error> {
+        let player = self.ecs.get::<&Position>(self.player)?;
         let screen = Rect::new(SCREEN_X.into(), SCREEN_Y.into());
-        let mut render_info = RenderInfo{
-            offset: Offset::new(
-                player.x - screen.width  as PosType / 2,
-                player.y - screen.height as PosType / 2,
-            ),
-            screen,
-            scale: 1.0,
-            tile: None,
-        };
 
         for (pos, chunk) in &self.grid {
             for row in 0..chunk.len() {
-                for (column, tile) in chunk[row].iter().enumerate() {
-                    render_info.tile = Some(TileInfo{
-                        pos: GridPos::new(
-                            pos.x * GRID_SIZE as i32 + column as PosType,
-                            pos.y * GRID_SIZE as i32 + row as PosType,
+                for (col, tile) in chunk[row].iter().enumerate() {
+                    let row = pos.x + row as i32;
+                    let col = pos.y + col as i32;
+                    let render_info = RenderInfo{
+                        screen,
+                        rect: rect::Rect::new(
+                            col * self.tile_scale as i32
+                                - (player.x * self.tile_scale as f32) as i32,
+                            row * self.tile_scale as i32
+                                - (player.y * self.tile_scale as f32) as i32,
+                            self.tile_scale as u32,
+                            self.tile_scale as u32,
                         ),
-                    });
+                    };
 
-                    (tile.behavior.render)
-                    (&self.ecs, tile.id, &render_info, &self.textures, canvas);
+                    let res = (tile.behavior.render)
+                        (&self.ecs, tile.id, &render_info, &self.textures, canvas);
+                    if res.is_err() {
+                        eprintln!("Error: {:?}", res);
+                    }
                 }
             }
         }
 
-        render_info.tile = None;
-
         for entity in &self.entities {
-            (entity.behavior.render)
-            (&self.ecs, entity.id, &render_info, &self.textures, canvas);
+            let pos = self.ecs.get::<&Position>(entity.id)?;
+            let render_info = RenderInfo{
+                screen,
+                rect: rect::Rect::new(
+                    ((pos.x as f32 - player.x) * self.tile_scale as f32) as i32
+                        + screen.width as i32 / 2,
+                    ((pos.y as f32 - player.y) * self.tile_scale as f32) as i32
+                        + screen.height as i32 / 2,
+                    self.tile_scale,
+                    self.tile_scale,
+                ),
+            };
+            let res = (entity.behavior.render)
+                (&self.ecs, entity.id, &render_info, &self.textures, canvas);
+            if res.is_err() {
+                eprintln!("Error: {:?}", res);
+            }
         }
 
+        Ok(())
     }
 
     pub fn update(&mut self, update_data: &UpdateData) {
         for entity in &mut self.entities {
-            (entity.behavior.update)
-            (&mut self.ecs, entity.id, &update_data);
+            let res = (entity.behavior.update)
+                (&mut self.ecs, entity.id, &update_data);
+            if res.is_err() {
+                eprintln!("Error: {:?}", res);
+            }
         }
     }
 
@@ -117,7 +140,14 @@ impl<'a> Game<'a> {
             behavior,
             id,
         };
-        (game_obj.behavior.init)(&mut self.ecs, game_obj.id, &self.textures);
+
+        // TODO skapa inte om failar
+        let res = (game_obj.behavior.init)
+            (&mut self.ecs, game_obj.id, &self.textures);
+        if res.is_err() {
+            eprintln!("Error: {:?}", res);
+        }
+
         game_obj
     }
 
@@ -128,9 +158,9 @@ impl<'a> Game<'a> {
     }
 
     fn generate_chunk(&mut self, pos: GridPos) {
-        let mut chunk = [[GAME_OBJECT_PLACEHOLDER; GRID_SIZE]; GRID_SIZE];
-        for row in 0..GRID_SIZE {
-            for col in 0..GRID_SIZE {
+        let mut chunk = [[GAME_OBJECT_PLACEHOLDER; CHUNK_SIZE]; CHUNK_SIZE];
+        for row in 0..CHUNK_SIZE {
+            for col in 0..CHUNK_SIZE {
                 chunk[row][col] = self.create_game_object(TestTileBehavior);
             }
         }

@@ -3,6 +3,7 @@ use crate::types::*;
 use crate::textures::Textures;
 
 use sdl2::event::Event;
+use sdl2::rect;
 use sdl2::keyboard::{
     KeyboardState,
     Scancode,
@@ -14,19 +15,19 @@ pub struct GameObjectBehavior {
     pub init: fn(
         _ecs: &mut ECSWorld,
         _ecs_id: ECSEntityId,
-        _textures: &Textures),
+        _textures: &Textures) -> Result<(), Error>,
 
     pub update: fn(
         _ecs: &mut ECSWorld,
         _ecs_id: ECSEntityId,
-        _update_data: &UpdateData),
+        _update_data: &UpdateData) -> Result<(), Error>,
 
     pub render: fn(
         _ecs: &ECSWorld,
         _ecs_id: ECSEntityId,
         _render_info: &RenderInfo,
         textures: &Textures,
-        _canvas: &mut Canvas),
+        _canvas: &mut Canvas) -> Result<(), Error>,
 }
 
 #[allow(dead_code)]
@@ -52,14 +53,8 @@ impl UpdateData<'_> {
     }
 }
 
-pub struct TileInfo {
-    pub pos: GridPos,
-}
-
 #[allow(dead_code)]
 pub struct RenderInfo {
-    pub offset: Offset,
     pub screen: Rect,
-    pub scale: f32,
-    pub tile: Option<TileInfo>,
+    pub rect: rect::Rect,
 }

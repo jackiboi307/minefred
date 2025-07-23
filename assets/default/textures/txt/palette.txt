@@ -1,5 +1,7 @@
 #f00 red
 #0f0 green
 #00f blue
-#840 brown
-#420 dark_brown
+#ff0 yellow
+#fff white
+#703008 brown
+#301808 dark_brown

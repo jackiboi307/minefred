@@ -1,0 +1,14 @@
+YRRRRRRB
+B      G
+B W  W G
+B      G
+B W  W G
+B WWWW G
+B      G
+GYYYYYYR
+=
+R red
+G green
+B blue
+Y yellow
+W white

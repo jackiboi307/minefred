@@ -5,3 +5,6 @@
 **/mutants.out*/
 
 Cargo.lock
+
+# python
+utils/__pycache__

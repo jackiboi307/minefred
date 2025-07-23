@@ -105,31 +105,32 @@ def parse_dir(path, palette=None):
 	
 	return textures
 	
-if len(sys.argv) != 3:
-	print(f"usage: {sys.argv[0]} <source> <dest>")
-	sys.exit(1)
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print(f"usage: {sys.argv[0]} <source> <dest>")
+        sys.exit(1)
 
-source = sys.argv[1]
-dest   = sys.argv[2]
+    source = sys.argv[1]
+    dest   = sys.argv[2]
 
-print(f"Parsing...")
+    print(f"Parsing...")
 
-textures = parse_dir(source)
+    textures = parse_dir(source)
 
-print("Done.\n")
+    print("Done.\n")
 
-for texture in textures:
-	print(f"{texture}")
-	for row in textures[texture]:
-		print("".join([
-			"\x1b[48;2;{};{};{}m  ".format(*col[:3])
-			for col in row
-		]) + "\033[0m")
-	print()
+    for texture in textures:
+        print(f"{texture}")
+        for row in textures[texture]:
+            print("".join([
+                "\x1b[48;2;{};{};{}m  ".format(*col[:3])
+                for col in row
+            ]) + "\033[0m")
+        print()
 
-print(f"Writing to {dest}...")
+    print(f"Writing to {dest}...")
 
-with open(dest, "w") as file:
-	json.dump(textures, file)
-	
-print("Done.")
+    with open(dest, "w") as file:
+        json.dump(textures, file)
+        
+    print("Done.")
