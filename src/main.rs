@@ -65,7 +65,7 @@ fn run() -> Result<(), Error> {
             keys: event_pump.keyboard_state(),
         };
 
-        game.update(&update_data);
+        game.update(&update_data)?;
 
         // Clear the canvas
         canvas.set_draw_color(Color::RGB(0, 0, 0));

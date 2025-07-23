@@ -2,9 +2,9 @@
 
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 
-pub type PosType  = f32;
+pub type PosType = f32;
 pub type SizeType = u16;
-type GridPosType  = i32;
+pub type GridPosType  = i32;
 
 // General stuff
 
@@ -15,7 +15,7 @@ pub struct Position { // TODO byt namn
     pub y: PosType,
 }
 
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Eq, Hash, PartialEq, Debug)]
 pub struct GridPos {
     pub x: GridPosType,
     pub y: GridPosType,

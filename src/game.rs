@@ -1,7 +1,7 @@
 use crate::behavior::base::*;
 use crate::behavior::behaviors::*;
 use crate::types::*;
-use crate::constants::{SCREEN_X, SCREEN_Y, CHUNK_SIZE};
+use crate::constants::{SCREEN_X, SCREEN_Y, CHUNK_SIZE, RENDER_DISTANCE};
 use crate::textures::{Textures, load_textures};
 
 use sdl2::render::TextureCreator;
@@ -43,7 +43,7 @@ impl<'a> Game<'a> {
             grid: HashMap::new(),
             textures: HashMap::new(),
             player: ECSEntityId::DANGLING,
-            tile_scale: 50,
+            tile_scale: 40,
         };
 
         // Self::init(&mut s);
@@ -55,10 +55,7 @@ impl<'a> Game<'a> {
         self.player = self.spawn_entity(PlayerBehavior);
         self.spawn_entity(TestBehavior);
 
-        self.generate_chunk(GridPos::new(0,   0));
-        self.generate_chunk(GridPos::new(-1,  0));
-        self.generate_chunk(GridPos::new(0,  -1));
-        self.generate_chunk(GridPos::new(-1, -1));
+        self.generate_chunk(GridPos::new(0, 0));
     }
 
     pub fn init_textures
@@ -71,17 +68,27 @@ impl<'a> Game<'a> {
         let player = self.ecs.get::<&Position>(self.player)?;
         let screen = Rect::new(SCREEN_X.into(), SCREEN_Y.into());
 
-        for (pos, chunk) in &self.grid {
-            for row in 0..chunk.len() {
-                for (col, tile) in chunk[row].iter().enumerate() {
-                    let row = pos.x + row as i32;
-                    let col = pos.y + col as i32;
+        for pos in self.get_loaded_chunks()? {
+            for row in 0..CHUNK_SIZE {
+                for col in 0..CHUNK_SIZE {
+                    let chunk = self.grid.get(&pos);
+                    let tile = if chunk.is_some() {
+                        chunk.unwrap()[row][col]
+                    } else {
+                        // NOTE i wouldn't expect this to be necessary,
+                        // but it does work
+                        continue
+                    };
+                    let row = pos.y * CHUNK_SIZE as i32 + row as i32;
+                    let col = pos.x * CHUNK_SIZE as i32 + col as i32;
                     let render_info = RenderInfo{
                         screen,
                         rect: rect::Rect::new(
-                            col * self.tile_scale as i32
+                            screen.width as i32 / 2
+                                + col * self.tile_scale as i32
                                 - (player.x * self.tile_scale as f32) as i32,
-                            row * self.tile_scale as i32
+                            screen.height as i32 / 2
+                                + row * self.tile_scale as i32
                                 - (player.y * self.tile_scale as f32) as i32,
                             self.tile_scale as u32,
                             self.tile_scale as u32,
@@ -120,7 +127,13 @@ impl<'a> Game<'a> {
         Ok(())
     }
 
-    pub fn update(&mut self, update_data: &UpdateData) {
+    pub fn update(&mut self, update_data: &UpdateData) -> Result<(), Error> {
+        for chunk in self.get_loaded_chunks()? {
+            if self.grid.get(&chunk).is_none() {
+                self.generate_chunk(chunk);
+            }
+        }
+
         for entity in &mut self.entities {
             let res = (entity.behavior.update)
                 (&mut self.ecs, entity.id, &update_data);
@@ -128,6 +141,27 @@ impl<'a> Game<'a> {
                 eprintln!("Error: {:?}", res);
             }
         }
+
+        Ok(())
+    }
+
+    fn get_loaded_chunks(&self)
+            -> Result<[GridPos; RENDER_DISTANCE * RENDER_DISTANCE], Error> {
+
+        let player = self.ecs.get::<&Position>(self.player)?.clone();
+
+        let chunks: [GridPos; RENDER_DISTANCE * RENDER_DISTANCE] = 
+            core::array::from_fn(|i|
+                    GridPos::new(
+                        (player.x / 16.0).floor() as GridPosType
+                            + (i % RENDER_DISTANCE) as i32
+                            - RENDER_DISTANCE as i32 / 2,
+                        (player.y / 16.0).floor() as GridPosType
+                            + (i / RENDER_DISTANCE) as i32
+                            - RENDER_DISTANCE as i32 / 2,
+                    ));
+
+        Ok(chunks)
     }
 
     fn ecs_create_entity(&mut self) -> ECSEntityId {

@@ -19,7 +19,7 @@ fn update(
     if let Ok(mut pos) = ecs.get::<&mut Position>(ecs_id) {
         let speed =
             if update_data.is_pressed([K::LShift])
-                { 0.2 } else { 0.1 };
+                { 32.0 } else { 0.1 };
 
         if update_data.is_pressed([K::D, K::Right]) { pos.x += speed; }
         if update_data.is_pressed([K::A, K::Left])  { pos.x -= speed; }
