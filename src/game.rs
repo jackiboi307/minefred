@@ -6,6 +6,7 @@ use crate::textures::{Textures, load_textures};
 
 use sdl2::render::TextureCreator;
 use sdl2::video::WindowContext;
+use sdl2::event::Event;
 use sdl2::rect;
 
 use hecs::World as ECSWorld;
@@ -30,7 +31,7 @@ pub struct Game<'a> {
     ecs: ECSWorld,
     entities: Vec<GameObject>,
     player: ECSEntityId,
-    grid: HashMap<GridPos, Chunk>,
+    grid: HashMap<ChunkPos, Chunk>,
     textures: Textures<'a>,
     tile_scale: u32,
 }
@@ -55,7 +56,7 @@ impl<'a> Game<'a> {
         self.player = self.spawn_entity(PlayerBehavior);
         self.spawn_entity(TestBehavior);
 
-        self.generate_chunk(GridPos::new(0, 0));
+        self.generate_chunk(ChunkPos::new(0, 0));
     }
 
     pub fn init_textures
@@ -68,39 +69,48 @@ impl<'a> Game<'a> {
         let player = self.ecs.get::<&Position>(self.player)?;
         let screen = Rect::new(SCREEN_X.into(), SCREEN_Y.into());
 
-        for pos in self.get_loaded_chunks()? {
-            for row in 0..CHUNK_SIZE {
-                for col in 0..CHUNK_SIZE {
-                    let chunk = self.grid.get(&pos);
-                    let tile = if chunk.is_some() {
-                        chunk.unwrap()[row][col]
-                    } else {
-                        // NOTE i wouldn't expect this to be necessary,
-                        // but it does work
-                        continue
-                    };
-                    let row = pos.y * CHUNK_SIZE as i32 + row as i32;
-                    let col = pos.x * CHUNK_SIZE as i32 + col as i32;
-                    let render_info = RenderInfo{
-                        screen,
-                        rect: rect::Rect::new(
-                            screen.width as i32 / 2
-                                + col * self.tile_scale as i32
-                                - (player.x * self.tile_scale as f32) as i32,
-                            screen.height as i32 / 2
-                                + row * self.tile_scale as i32
-                                - (player.y * self.tile_scale as f32) as i32,
-                            self.tile_scale as u32,
-                            self.tile_scale as u32,
-                        ),
-                    };
+        // for pos in self.get_loaded_chunks()? {
+        //     let chunk = self.grid.get(&pos);
+        //     for row in 0..CHUNK_SIZE {
+        //         for col in 0..CHUNK_SIZE {
+        //             let tile = if chunk.is_some() {
+        //                 chunk.unwrap()[row][col]
+        //             } else {
+        //                 // NOTE i wouldn't expect this to be necessary,
+        //                 // but it does work
+        //                 continue
+        //             };
+        //             let row = pos.y * CHUNK_SIZE as i32 + row as i32;
+        //             let col = pos.x * CHUNK_SIZE as i32 + col as i32;
 
-                    let res = (tile.behavior.render)
-                        (&self.ecs, tile.id, &render_info, &self.textures, canvas);
-                    if res.is_err() {
-                        eprintln!("Error: {:?}", res);
-                    }
-                }
+        for tile in self.get_loaded_tiles()? {
+            let col = tile.x();
+            let row = tile.y();
+            let tile =
+                if let Some(chunk) = self.grid.get(&tile.chunk) {
+                    chunk[tile.chunk_y][tile.chunk_x]
+                } else {
+                    continue
+                };
+
+            let render_info = RenderInfo{
+                screen,
+                rect: rect::Rect::new(
+                    screen.width as i32 / 2
+                        + col * self.tile_scale as i32
+                        - (player.x * self.tile_scale as f32) as i32,
+                    screen.height as i32 / 2
+                        + row * self.tile_scale as i32
+                        - (player.y * self.tile_scale as f32) as i32,
+                    self.tile_scale as u32,
+                    self.tile_scale as u32,
+                ),
+            };
+
+            let res = (tile.behavior.render)
+                (&self.ecs, tile.id, &render_info, &self.textures, canvas);
+            if res.is_err() {
+                eprintln!("Error: {:?}", res);
             }
         }
 
@@ -128,6 +138,16 @@ impl<'a> Game<'a> {
     }
 
     pub fn update(&mut self, update_data: &UpdateData) -> Result<(), Error> {
+        for event in &update_data.events {
+            match event {
+                Event::MouseWheel { y, .. } => {
+                    self.tile_scale =
+                        (self.tile_scale as i32).saturating_sub(*y).min(50).max(30) as u32;
+                },
+                _ => {}
+            }
+        }
+
         for chunk in self.get_loaded_chunks()? {
             if self.grid.get(&chunk).is_none() {
                 self.generate_chunk(chunk);
@@ -145,21 +165,38 @@ impl<'a> Game<'a> {
         Ok(())
     }
 
+    fn get_loaded_tiles(&self)
+            -> Result<[TilePos; RENDER_DISTANCE.pow(2) * CHUNK_SIZE.pow(2)], Error> {
+
+        let loaded = self.get_loaded_chunks()?;
+        let tiles:
+                [TilePos; RENDER_DISTANCE.pow(2) * CHUNK_SIZE.pow(2)] =
+            core::array::from_fn(|i| {
+                let chunkpos = loaded[i / CHUNK_SIZE.pow(2)];
+                TilePos::new(
+                    chunkpos,
+                    i % CHUNK_SIZE,
+                    i % CHUNK_SIZE.pow(2) / CHUNK_SIZE,
+                )
+            });
+
+        Ok(tiles)
+    }
+
     fn get_loaded_chunks(&self)
-            -> Result<[GridPos; RENDER_DISTANCE * RENDER_DISTANCE], Error> {
+            -> Result<[ChunkPos; RENDER_DISTANCE.pow(2)], Error> {
 
         let player = self.ecs.get::<&Position>(self.player)?.clone();
-
-        let chunks: [GridPos; RENDER_DISTANCE * RENDER_DISTANCE] = 
+        let chunks: [ChunkPos; RENDER_DISTANCE.pow(2)] = 
             core::array::from_fn(|i|
-                    GridPos::new(
-                        (player.x / 16.0).floor() as GridPosType
-                            + (i % RENDER_DISTANCE) as i32
-                            - RENDER_DISTANCE as i32 / 2,
-                        (player.y / 16.0).floor() as GridPosType
-                            + (i / RENDER_DISTANCE) as i32
-                            - RENDER_DISTANCE as i32 / 2,
-                    ));
+                ChunkPos::new(
+                    (player.x / 16.0).floor() as ChunkPosType
+                        + (i % RENDER_DISTANCE) as i32
+                        - RENDER_DISTANCE as i32 / 2,
+                    (player.y / 16.0).floor() as ChunkPosType
+                        + (i / RENDER_DISTANCE) as i32
+                        - RENDER_DISTANCE as i32 / 2,
+                ));
 
         Ok(chunks)
     }
@@ -191,7 +228,7 @@ impl<'a> Game<'a> {
         game_obj.id
     }
 
-    fn generate_chunk(&mut self, pos: GridPos) {
+    fn generate_chunk(&mut self, pos: ChunkPos) {
         let mut chunk = [[GAME_OBJECT_PLACEHOLDER; CHUNK_SIZE]; CHUNK_SIZE];
         for row in 0..CHUNK_SIZE {
             for col in 0..CHUNK_SIZE {
