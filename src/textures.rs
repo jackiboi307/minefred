@@ -1,4 +1,3 @@
-use crate::constants::{STANDARD_TILE_TEXTURE_SIZE};
 use crate::behavior::base::Canvas;
 use crate::random;
 use crate::types::Error;
@@ -35,6 +34,7 @@ pub struct TextureComponent{
     id: String,
     direction: Direction,
     valid: bool,
+    scale: f32,
 }
 
 impl TextureComponent {
@@ -43,6 +43,7 @@ impl TextureComponent {
             id: id.to_string(),
             direction: Direction::TWELVE,
             valid: textures.get(id).is_some(),
+            scale: 1.0,
         }
     }
 
@@ -57,6 +58,12 @@ impl TextureComponent {
                 _ => Direction::NINE,
             };
 
+        self
+    }
+
+    pub fn set_scale(mut self, scale: f32) -> Self {
+        if !self.valid { return self }
+        self.scale = scale;
         self
     }
 }
@@ -92,10 +99,9 @@ pub fn load_textures
         let mut texture = texture_creator
             .create_texture_streaming(
                 PixelFormatEnum::RGBA32,
-                STANDARD_TILE_TEXTURE_SIZE,
-                STANDARD_TILE_TEXTURE_SIZE)?;
+                texture_arr.len() as u32,
+                texture_arr[0].len() as u32)?;
             // .map_err(|e| e.to_string());
-            //
 
         texture.set_blend_mode(BlendMode::Blend);
         texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
@@ -129,6 +135,12 @@ pub fn copy_texture(
         .unwrap_or_else(|| {
             textures.get("error").expect("Could not get texture 'error'")
         });
+    
+    let rect = rect::Rect::from_center(
+        rect.center(),
+        (rect.width() as f32 * texture_component.scale) as u32,
+        (rect.height() as f32 * texture_component.scale) as u32
+    );
 
     canvas.copy_ex(
         &texture.texture,

@@ -9,3 +9,6 @@ pub use player::*;
 
 mod test_tile;
 pub use test_tile::*;
+
+mod tree;
+pub use tree::*;

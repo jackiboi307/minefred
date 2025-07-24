@@ -3,5 +3,11 @@
 #00f blue
 #ff0 yellow
 #fff white
+
 #703008 brown
 #301808 dark_brown
+
+#020 veg_0
+#140 veg_1
+#280 veg_2
+#4a0 veg_3

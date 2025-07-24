@@ -5,4 +5,3 @@ pub const SCREEN_Y: SizeType = 600;
 
 pub const CHUNK_SIZE: usize = 16;
 pub const RENDER_DISTANCE: usize = 4;
-pub const STANDARD_TILE_TEXTURE_SIZE: u32 = 8;

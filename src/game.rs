@@ -3,6 +3,7 @@ use crate::behavior::behaviors::*;
 use crate::types::*;
 use crate::constants::{SCREEN_X, SCREEN_Y, CHUNK_SIZE, RENDER_DISTANCE};
 use crate::textures::{Textures, load_textures};
+use crate::random;
 
 use sdl2::render::TextureCreator;
 use sdl2::video::WindowContext;
@@ -20,36 +21,7 @@ struct GameObject {
     id: ECSEntityId,
 }
 
-struct Tile {
-    stack: [Option<GameObject>; 2],
-}
-
-impl Tile {
-    fn new() -> Self {
-        Self{
-            stack: [None, None],
-        }
-    }
-
-    fn push(&mut self, game_object: GameObject) -> Result<(), Error> {
-        for i in 0..(self.stack.len() - 1) {
-            if self.stack[i].is_none() {
-                self.stack[i] = Some(game_object);
-                return Ok(())
-            }
-        }
-
-        Err("Stack is full!".into())
-    }
-
-    fn get_game_objects
-            (&self)
-            -> impl Iterator<Item = GameObject> {
-        let gobjs = self.stack.into_iter().filter(|i| i.is_some()).map(|i| i.unwrap());
-        gobjs
-    }
-}
-
+type Tile = Vec<GameObject>;
 type Chunk = [[Tile; CHUNK_SIZE]; CHUNK_SIZE];
 
 pub struct Game<'a> {
@@ -94,36 +66,51 @@ impl<'a> Game<'a> {
         let player = self.ecs.get::<&Position>(self.player)?;
         let screen = Rect::new(SCREEN_X.into(), SCREEN_Y.into());
 
-        for tile in self.get_loaded_tiles()? {
-            let col = tile.x();
-            let row = tile.y();
-            let tile =
-                if let Some(chunk) = self.grid.get(&tile.chunk) {
-                    &chunk[tile.chunk_y][tile.chunk_x]
+        let mut i = 0;
+        loop {
+            let mut found = false;
+            for tile in self.get_loaded_tiles()? {
+                let col = tile.x();
+                let row = tile.y();
+                let tile =
+                    if let Some(chunk) = self.grid.get(&tile.chunk) {
+                        &chunk[tile.chunk_y][tile.chunk_x]
+                    } else {
+                        continue
+                    };
+
+                if i < tile.len() {
+                    found = true;
                 } else {
                     continue
+                }
+
+                let render_info = RenderInfo{
+                    screen,
+                    rect: rect::Rect::new(
+                        screen.width as i32 / 2
+                            + col * self.tile_scale as i32
+                            - (player.x * self.tile_scale as f32) as i32,
+                        screen.height as i32 / 2
+                            + row * self.tile_scale as i32
+                            - (player.y * self.tile_scale as f32) as i32,
+                        self.tile_scale as u32,
+                        self.tile_scale as u32,
+                    ),
                 };
 
-            let render_info = RenderInfo{
-                screen,
-                rect: rect::Rect::new(
-                    screen.width as i32 / 2
-                        + col * self.tile_scale as i32
-                        - (player.x * self.tile_scale as f32) as i32,
-                    screen.height as i32 / 2
-                        + row * self.tile_scale as i32
-                        - (player.y * self.tile_scale as f32) as i32,
-                    self.tile_scale as u32,
-                    self.tile_scale as u32,
-                ),
-            };
-
-            for game_object in tile.get_game_objects() {
+                let game_object = tile[i];
                 let res = (game_object.behavior.render)
                     (&self.ecs, game_object.id, &render_info, &self.textures, canvas);
                 if res.is_err() {
                     eprintln!("Error: {:?}", res);
                 }
+            }
+
+            if found {
+                i += 1;
+            } else {
+                break
             }
         }
 
@@ -242,18 +229,21 @@ impl<'a> Game<'a> {
     }
 
     fn generate_chunk(&mut self, pos: ChunkPos) -> Result<(), Error> {
-        let mut result = Ok(());
+        // let mut result = Ok(());
 
         let chunk: [[Tile; CHUNK_SIZE]; CHUNK_SIZE] =
             core::array::from_fn(|_| core::array::from_fn(|_| {
                 let mut tile = Tile::new();
-                let res = tile.push(self.create_game_object(TestTileBehavior));
-                if res.is_err() { result = res };
+                let _ = tile.push(self.create_game_object(TestTileBehavior));
+                if random::int(0..8) == 0 {
+                    let _ = tile.push(self.create_game_object(TreeBehavior));
+                }
                 tile
             }));
 
         self.grid.insert(pos, chunk);
 
-        result
+        // result
+        Ok(())
     }
 }
