@@ -69,20 +69,6 @@ impl<'a> Game<'a> {
         let player = self.ecs.get::<&Position>(self.player)?;
         let screen = Rect::new(SCREEN_X.into(), SCREEN_Y.into());
 
-        // for pos in self.get_loaded_chunks()? {
-        //     let chunk = self.grid.get(&pos);
-        //     for row in 0..CHUNK_SIZE {
-        //         for col in 0..CHUNK_SIZE {
-        //             let tile = if chunk.is_some() {
-        //                 chunk.unwrap()[row][col]
-        //             } else {
-        //                 // NOTE i wouldn't expect this to be necessary,
-        //                 // but it does work
-        //                 continue
-        //             };
-        //             let row = pos.y * CHUNK_SIZE as i32 + row as i32;
-        //             let col = pos.x * CHUNK_SIZE as i32 + col as i32;
-
         for tile in self.get_loaded_tiles()? {
             let col = tile.x();
             let row = tile.y();
@@ -191,11 +177,11 @@ impl<'a> Game<'a> {
             core::array::from_fn(|i|
                 ChunkPos::new(
                     (player.x / 16.0).floor() as ChunkPosType
-                        + (i % RENDER_DISTANCE) as i32
-                        - RENDER_DISTANCE as i32 / 2,
+                        + (i % RENDER_DISTANCE) as ChunkPosType
+                        - RENDER_DISTANCE as ChunkPosType / 2,
                     (player.y / 16.0).floor() as ChunkPosType
-                        + (i / RENDER_DISTANCE) as i32
-                        - RENDER_DISTANCE as i32 / 2,
+                        + (i / RENDER_DISTANCE) as ChunkPosType
+                        - RENDER_DISTANCE as ChunkPosType / 2,
                 ));
 
         Ok(chunks)
