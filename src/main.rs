@@ -40,7 +40,7 @@ fn run() -> Result<(), Error> {
 
     let mut game = Game::new();
     game.init_textures(&texture_creator)?;
-    game.init();
+    game.init()?;
 
     // Main loop
     'main: loop {

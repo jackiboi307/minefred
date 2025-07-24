@@ -20,12 +20,37 @@ struct GameObject {
     id: ECSEntityId,
 }
 
-const GAME_OBJECT_PLACEHOLDER: GameObject = GameObject{
-    behavior: DefaultBehavior,
-    id: ECSEntityId::DANGLING,
-};
+struct Tile {
+    stack: [Option<GameObject>; 2],
+}
 
-type Chunk = [[GameObject; CHUNK_SIZE]; CHUNK_SIZE];
+impl Tile {
+    fn new() -> Self {
+        Self{
+            stack: [None, None],
+        }
+    }
+
+    fn push(&mut self, game_object: GameObject) -> Result<(), Error> {
+        for i in 0..(self.stack.len() - 1) {
+            if self.stack[i].is_none() {
+                self.stack[i] = Some(game_object);
+                return Ok(())
+            }
+        }
+
+        Err("Stack is full!".into())
+    }
+
+    fn get_game_objects
+            (&self)
+            -> impl Iterator<Item = GameObject> {
+        let gobjs = self.stack.into_iter().filter(|i| i.is_some()).map(|i| i.unwrap());
+        gobjs
+    }
+}
+
+type Chunk = [[Tile; CHUNK_SIZE]; CHUNK_SIZE];
 
 pub struct Game<'a> {
     ecs: ECSWorld,
@@ -47,16 +72,16 @@ impl<'a> Game<'a> {
             tile_scale: 40,
         };
 
-        // Self::init(&mut s);
-
         s
     }
 
-    pub fn init(&mut self) {
+    pub fn init(&mut self) -> Result<(), Error> {
         self.player = self.spawn_entity(PlayerBehavior);
         self.spawn_entity(TestBehavior);
 
-        self.generate_chunk(ChunkPos::new(0, 0));
+        self.generate_chunk(ChunkPos::new(0, 0))?;
+
+        Ok(())
     }
 
     pub fn init_textures
@@ -74,7 +99,7 @@ impl<'a> Game<'a> {
             let row = tile.y();
             let tile =
                 if let Some(chunk) = self.grid.get(&tile.chunk) {
-                    chunk[tile.chunk_y][tile.chunk_x]
+                    &chunk[tile.chunk_y][tile.chunk_x]
                 } else {
                     continue
                 };
@@ -93,10 +118,12 @@ impl<'a> Game<'a> {
                 ),
             };
 
-            let res = (tile.behavior.render)
-                (&self.ecs, tile.id, &render_info, &self.textures, canvas);
-            if res.is_err() {
-                eprintln!("Error: {:?}", res);
+            for game_object in tile.get_game_objects() {
+                let res = (game_object.behavior.render)
+                    (&self.ecs, game_object.id, &render_info, &self.textures, canvas);
+                if res.is_err() {
+                    eprintln!("Error: {:?}", res);
+                }
             }
         }
 
@@ -128,7 +155,7 @@ impl<'a> Game<'a> {
             match event {
                 Event::MouseWheel { y, .. } => {
                     self.tile_scale =
-                        (self.tile_scale as i32).saturating_sub(*y).min(50).max(30) as u32;
+                        (self.tile_scale as i32).saturating_sub(*y).min(70).max(30) as u32;
                 },
                 _ => {}
             }
@@ -136,7 +163,7 @@ impl<'a> Game<'a> {
 
         for chunk in self.get_loaded_chunks()? {
             if self.grid.get(&chunk).is_none() {
-                self.generate_chunk(chunk);
+                self.generate_chunk(chunk)?;
             }
         }
 
@@ -214,13 +241,19 @@ impl<'a> Game<'a> {
         game_obj.id
     }
 
-    fn generate_chunk(&mut self, pos: ChunkPos) {
-        let mut chunk = [[GAME_OBJECT_PLACEHOLDER; CHUNK_SIZE]; CHUNK_SIZE];
-        for row in 0..CHUNK_SIZE {
-            for col in 0..CHUNK_SIZE {
-                chunk[row][col] = self.create_game_object(TestTileBehavior);
-            }
-        }
+    fn generate_chunk(&mut self, pos: ChunkPos) -> Result<(), Error> {
+        let mut result = Ok(());
+
+        let chunk: [[Tile; CHUNK_SIZE]; CHUNK_SIZE] =
+            core::array::from_fn(|_| core::array::from_fn(|_| {
+                let mut tile = Tile::new();
+                let res = tile.push(self.create_game_object(TestTileBehavior));
+                if res.is_err() { result = res };
+                tile
+            }));
+
         self.grid.insert(pos, chunk);
+
+        result
     }
 }

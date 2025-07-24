@@ -7,7 +7,7 @@ fn init(
         textures: &Textures) -> Result<(), Error> {
 
     let texture =
-        TextureComponent::new(&textures, "dirt")
+        TextureComponent::new(&textures, "grass")
         .random_direction();
     ecs.insert(ecs_id, (texture,))?;
     Ok(())
