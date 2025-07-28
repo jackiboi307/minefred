@@ -1,5 +1,8 @@
 use std::time::Instant;
 
+const PRINT_DEBUG: bool = true;
+const PRINT_TIMER: bool = false && PRINT_DEBUG;
+
 pub struct Timer {
     label: &'static str,
     start: Instant,
@@ -19,7 +22,9 @@ impl Timer {
 
     pub fn done(&self) -> u128 {
         let elapsed = self.elapsed();
-        println!("timer: {} ms: {}", elapsed, self.label);
+        if PRINT_TIMER {
+            println!("timer: {} ms: {}", elapsed, self.label);
+        }
         elapsed
     }
 }

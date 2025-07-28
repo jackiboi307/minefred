@@ -45,7 +45,7 @@ fn run() -> Result<(), Error> {
 
     // Main loop
     'main: loop {
-        let timer = debug::Timer::new("frame");
+        let timer = debug::Timer::new("WHOLE FRAME");
 
         let mut events = Vec::<Event>::new();
 
@@ -78,7 +78,7 @@ fn run() -> Result<(), Error> {
         // Present the canvas
         canvas.present();
 
-        let elapsed = timer.elapsed() as u64;
+        let elapsed = timer.done() as u64;
 
         // Wait for a short duration
         std::thread::sleep(Duration::from_millis(

@@ -117,7 +117,6 @@ impl<'a> Game<'a> {
         if do_update {
             self.player_chunk = self.ecs.get::<&Position>(self.player)?.chunk();
 
-            // let timer = debug::Timer::new("calculating chunks");
             let chunks = {
                 let player_chunk = self.ecs.get::<&Position>(self.player)?.chunk();
                 core::array::from_fn::<ChunkPos, {RENDER_DISTANCE.pow(2)}, _>(|i|
@@ -130,7 +129,6 @@ impl<'a> Game<'a> {
                             - RENDER_DISTANCE as ChunkPosType / 2,
                 )).to_vec()
             };
-            // timer.done();
 
             let timer = debug::Timer::new("generating chunks?");
             for chunk in &chunks {
@@ -191,7 +189,7 @@ impl<'a> Game<'a> {
         let player = self.ecs.get::<&Position>(self.player)?;
         let screen = Rect::new(SCREEN_X.into(), SCREEN_Y.into());
 
-        // let timer = debug::Timer::new("rendering");
+        let timer = debug::Timer::new("rendering");
         for id in &self.loaded.ids {
             let rect =
                 if let Ok(pos) = self.ecs.get::<&Position>(*id) {
@@ -233,7 +231,7 @@ impl<'a> Game<'a> {
                 eprintln!("Error: {:?}", res);
             }
         }
-        // timer.done();
+        timer.done();
 
         Ok(())
     }
@@ -251,7 +249,7 @@ impl<'a> Game<'a> {
 
         self.update_loaded(false)?;
 
-        // let timer = debug::Timer::new("updating");
+        let timer = debug::Timer::new("updating");
         for id in &self.loaded.ids {
             let res =
                 (self.get_behavior(*id).update)
@@ -260,7 +258,7 @@ impl<'a> Game<'a> {
                 eprintln!("Error: {:?}", res);
             }
         }
-        // timer.done();
+        timer.done();
 
         Ok(())
     }
