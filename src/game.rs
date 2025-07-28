@@ -3,7 +3,6 @@ use crate::behavior::behaviors::*;
 use crate::types::*;
 use crate::constants::*;
 use crate::textures::{Textures, load_textures};
-// use crate::random;
 use crate::debug;
 
 use sdl2::render::TextureCreator;
@@ -28,28 +27,6 @@ impl Loaded {
             ids: Vec::new(),
         }
     }
-
-    // fn update_ids(&mut self) {
-    //     self.ids = {
-    //         let mut ids = Vec::new();
-
-    //         for layer in &self.grid_layers {
-    //             for (_, chunk) in layer {
-    //                 for row in chunk {
-    //                     for id in row {
-    //                         ids.push(*id);
-    //                     }
-    //                 }
-    //             }
-    //         }
-
-    //         for id in &self.entities {
-    //             ids.push(*id);
-    //         }
-
-    //         ids
-    //     };
-    // }
 }
 
 struct Counter {
@@ -134,12 +111,6 @@ impl<'a> Game<'a> {
             return Ok(())
         }
 
-        // {
-        //     let player = self.ecs.get::<&Position>(self.player)?.clone();
-        //     println!("player chunk: {}, {}", player.chunk().x, player.chunk().y);
-        //     println!("player pos:   {}, {}", player.x(), player.y());
-        // }
-
         let do_update = force ||
             self.ecs.get::<&Position>(self.player)?.clone().chunk() != self.player_chunk;
 
@@ -207,39 +178,6 @@ impl<'a> Game<'a> {
             });
             let ids = render_order.iter().flat_map(|v| v.iter()).cloned().collect();
             timer.done();
-
-            // let timer = debug::Timer::new("sorting ids");
-            // ids.sort_unstable_by(|id1, id2| {
-            //     let zindex1 = if let Ok(zindex1) = self.ecs.get::<&ZIndex>(*id1) {
-            //         zindex1 } else { return Ordering::Less };
-            //     let zindex2 = if let Ok(zindex2) = self.ecs.get::<&ZIndex>(*id2) {
-            //         zindex2 } else { return Ordering::Greater };
-
-            //     if zindex1.index < zindex2.index {
-            //         Ordering::Less
-
-            //     } else if zindex1.index == zindex2.index {
-            //         let pos1 = if let Ok(pos1) = self.ecs.get::<&Position>(*id1) {
-            //             pos1 } else { return Ordering::Less };
-            //         let pos2 = if let Ok(pos2) = self.ecs.get::<&Position>(*id2) {
-            //             pos2 } else { return Ordering::Greater };
-
-            //         let pos1 = pos1.x() + pos1.y();
-            //         let pos2 = pos2.x() + pos2.y();
-
-            //         if pos1 < pos2 {
-            //             Ordering::Less
-            //         } else if pos1 == pos2 {
-            //             Ordering::Equal
-            //         } else {
-            //             Ordering::Greater
-            //         }
-
-            //     } else {
-            //         Ordering::Greater
-            //     }
-            // });
-            // timer.done();
 
             self.loaded = Loaded{
                 ids,
@@ -326,42 +264,6 @@ impl<'a> Game<'a> {
 
         Ok(())
     }
-
-    // fn get_loaded_tiles(&self)
-    //         -> Result<[TilePos; RENDER_DISTANCE.pow(2)], Error> {
-
-    //     let loaded = self.get_loaded_chunks()?;
-    //     let tiles:
-    //             [TilePos; RENDER_DISTANCE.pow(2) * CHUNK_SIZE.pow(2)] =
-    //         core::array::from_fn(|i| {
-    //             let chunkpos = loaded[i / CHUNK_SIZE.pow(2)];
-    //             TilePos::new(
-    //                 chunkpos,
-    //                 i % CHUNK_SIZE,
-    //                 i % CHUNK_SIZE.pow(2) / CHUNK_SIZE,
-    //             )
-    //         });
-
-    //     Ok(tiles)
-    // }
-
-    // fn get_loaded_chunks(&self)
-    //         -> Result<Loaded, Error> {
-
-    //     let player = self.ecs.get::<&Position>(self.player)?.clone();
-    //     let chunks: [ChunkPos; RENDER_DISTANCE.pow(2)] = 
-    //         core::array::from_fn(|i|
-    //             ChunkPos::new(
-    //                 (player.x / 16.0).floor() as ChunkPosType
-    //                     + (i % RENDER_DISTANCE) as ChunkPosType
-    //                     - RENDER_DISTANCE as ChunkPosType / 2,
-    //                 (player.y / 16.0).floor() as ChunkPosType
-    //                     + (i / RENDER_DISTANCE) as ChunkPosType
-    //                     - RENDER_DISTANCE as ChunkPosType / 2,
-    //             ));
-
-    //     Ok(chunks)
-    // }
 
     fn get_behavior(&self, id: ECSEntityId) -> GameObjectBehavior {
         *self.behaviors.get(&id).unwrap_or_else(|| &DefaultBehavior)

@@ -75,19 +75,19 @@ impl Position {
         }
     }
 
-    pub fn is_free(&self) -> bool {
-        match &self.pos {
-            PosKind::Free{ .. } => true,
-            _ => false
-        }
-    }
+    // pub fn is_free(&self) -> bool {
+    //     match &self.pos {
+    //         PosKind::Free{ .. } => true,
+    //         _ => false
+    //     }
+    // }
 
-    pub fn is_tile(&self) -> bool {
-        match &self.pos {
-            PosKind::Tile{ .. } => true,
-            _ => false
-        }
-    }
+    // pub fn is_tile(&self) -> bool {
+    //     match &self.pos {
+    //         PosKind::Tile{ .. } => true,
+    //         _ => false
+    //     }
+    // }
 }
 
 impl ChunkPos {
