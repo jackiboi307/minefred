@@ -8,7 +8,7 @@ fn init(
         textures: &Textures) -> Result<(), Error> {
 
     ecs.insert(ecs_id, (
-        Position::new(0.0, 0.0),
+        Position::free(0.0, 0.0),
         TextureComponent::new(textures, "player"),
     ))?;
     Ok(())
@@ -24,10 +24,10 @@ fn update(
             if update_data.is_pressed([K::LShift])
                 { 0.2 } else { 0.1 };
 
-        if update_data.is_pressed([K::D, K::Right]) { pos.x += speed; }
-        if update_data.is_pressed([K::A, K::Left])  { pos.x -= speed; }
-        if update_data.is_pressed([K::S, K::Down])  { pos.y += speed; }
-        if update_data.is_pressed([K::W, K::Up])    { pos.y -= speed; }
+        if update_data.is_pressed([K::D, K::Right]) { pos.move_x(speed); }
+        if update_data.is_pressed([K::A, K::Left])  { pos.move_x(-speed); }
+        if update_data.is_pressed([K::S, K::Down])  { pos.move_y(speed); }
+        if update_data.is_pressed([K::W, K::Up])    { pos.move_y(-speed); }
     }
 
     Ok(())

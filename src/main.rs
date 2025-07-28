@@ -4,6 +4,7 @@ extern crate rand;
 extern crate serde_json;
 
 mod game;
+mod debug;
 mod types;
 mod random;
 mod behavior;
@@ -19,7 +20,7 @@ use types::Error;
 use sdl2::event::Event;
 use sdl2::pixels::Color;
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 const FPS: u64 = 60;
 
@@ -44,7 +45,7 @@ fn run() -> Result<(), Error> {
 
     // Main loop
     'main: loop {
-        let start_time = Instant::now();
+        let timer = debug::Timer::new("frame");
 
         let mut events = Vec::<Event>::new();
 
@@ -77,12 +78,11 @@ fn run() -> Result<(), Error> {
         // Present the canvas
         canvas.present();
 
-        let elapsed_time = start_time.elapsed().as_millis() as u64;
-        print!("\rlag: {} ", elapsed_time);
+        let elapsed = timer.elapsed() as u64;
 
         // Wait for a short duration
         std::thread::sleep(Duration::from_millis(
-            (1000 / FPS).saturating_sub(elapsed_time)));
+            (1000 / FPS).saturating_sub(elapsed)));
     }
 
     println!();
@@ -90,6 +90,7 @@ fn run() -> Result<(), Error> {
     Ok(())
 }
 
-fn main() {
-    run().unwrap();
+fn main() -> Result<(), Error> {
+    run()?;
+    Ok(())
 }

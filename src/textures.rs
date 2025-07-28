@@ -13,19 +13,19 @@ use std::fs::File;
 use std::io::BufReader;
 
 enum Direction {
-    TWELVE,
-    THREE,
-    SIX,
-    NINE,
+    Twelve,
+    Three,
+    Six,
+    Nine,
 }
 
 impl Direction {
     fn degrees(&self) -> f64 {
         match self {
-            Self::TWELVE => 0.0,
-            Self::THREE  => 90.0,
-            Self::SIX    => 180.0,
-            Self::NINE   => 270.0,
+            Self::Twelve => 0.0,
+            Self::Three  => 90.0,
+            Self::Six    => 180.0,
+            Self::Nine   => 270.0,
         }
     }
 }
@@ -41,7 +41,7 @@ impl TextureComponent {
     pub fn new(textures: &Textures, id: &'static str) -> Self {
         Self{
             id: id.to_string(),
-            direction: Direction::TWELVE,
+            direction: Direction::Twelve,
             valid: textures.get(id).is_some(),
             scale: 1.0,
         }
@@ -52,10 +52,10 @@ impl TextureComponent {
 
         self.direction =
             match random::int(0..=3) {
-                0 => Direction::TWELVE,
-                1 => Direction::THREE,
-                2 => Direction::SIX,
-                _ => Direction::NINE,
+                0 => Direction::Twelve,
+                1 => Direction::Three,
+                2 => Direction::Six,
+                _ => Direction::Nine,
             };
 
         self

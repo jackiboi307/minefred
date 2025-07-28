@@ -7,7 +7,7 @@ fn init(
         textures: &Textures) -> Result<(), Error> {
 
     ecs.insert(ecs_id, (
-        Position::new(0.0, 0.0),
+        Position::free(0.0, 0.0),
         TextureComponent::new(&textures, "error"),
     ))?;
     Ok(())
