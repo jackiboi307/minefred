@@ -6,6 +6,7 @@ extern crate serde_json;
 mod game;
 mod debug;
 mod types;
+mod utils;
 mod random;
 mod behavior;
 mod textures;
@@ -13,11 +14,9 @@ mod constants;
 mod components;
 
 use game::Game;
-use behavior::UpdateData;
 use constants::{SCREEN_X, SCREEN_Y};
 use types::Error;
 
-use sdl2::event::Event;
 use sdl2::pixels::Color;
 
 use std::time::Duration;
@@ -47,27 +46,9 @@ fn run() -> Result<(), Error> {
     'main: loop {
         let timer = debug::Timer::new("WHOLE FRAME");
 
-        let mut events = Vec::<Event>::new();
-
-        // Handle events
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. } => {
-                    break 'main;
-                },
-
-                _ => {
-                    events.push(event);
-                }
-            }
+        if game.update(&mut event_pump)? {
+            break 'main;
         }
-
-        let update_data = UpdateData{
-            events,
-            keys: event_pump.keyboard_state(),
-        };
-
-        game.update(&update_data)?;
 
         // Clear the canvas
         canvas.set_draw_color(Color::RGB(0, 0, 0));
@@ -78,7 +59,10 @@ fn run() -> Result<(), Error> {
         // Present the canvas
         canvas.present();
 
-        let elapsed = timer.done() as u64;
+        let elapsed = timer.elapsed() as u64;
+        if elapsed > 16 {
+            println!("lag: {}", elapsed);
+        }
 
         // Wait for a short duration
         std::thread::sleep(Duration::from_millis(

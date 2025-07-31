@@ -1,13 +1,16 @@
 use crate::behavior::base::*;
 use crate::behavior::behaviors::*;
+use crate::behavior::event::EventHandler;
 use crate::types::*;
 use crate::constants::*;
+use crate::utils::*;
 use crate::textures::{Textures, load_textures};
 use crate::debug;
 
 use sdl2::render::TextureCreator;
 use sdl2::video::WindowContext;
 use sdl2::event::Event;
+use sdl2::EventPump;
 use sdl2::rect;
 
 use hecs::World as ECSWorld;
@@ -16,6 +19,7 @@ use hecs::DynamicBundle;
 
 use std::collections::HashMap;
 use std::cmp::Ordering;
+use std::ops::Deref;
 
 struct Loaded {
     ids: Vec<ECSEntityId>,
@@ -29,51 +33,36 @@ impl Loaded {
     }
 }
 
-struct Counter {
-    i: u8,
-    max: u8,
-}
-
-impl Counter {
-    fn new(max: u8) -> Self {
-        Self{i: max, max}
-    }
-
-    fn count(&mut self) -> bool {
-        if self.i == self.max {
-            self.i = 0;
-            true
-        } else {
-            self.i += 1;
-            false
-        }
-    }
-}
-
 pub struct Game<'a> {
     ecs: ECSWorld,
-    player: ECSEntityId,
     textures: Textures<'a>,
     behaviors: HashMap<ECSEntityId, GameObjectBehavior>,
     loaded: Loaded,
     loaded_update_counter: Counter,
+    player: ECSEntityId,
+    selected: ECSEntityId,
     chunks: Vec<ChunkPos>,
     player_chunk: ChunkPos,
     tile_scale: u32,
+    screen: Rect,
+    event_handler: EventHandler,
 }
 
 impl<'a> Game<'a> {
     pub fn new() -> Self {
         let s = Self{
             ecs: ECSWorld::new(),
-            player: ECSEntityId::DANGLING,
             textures: HashMap::new(),
             behaviors: HashMap::new(),
             loaded: Loaded::new(),
             loaded_update_counter: Counter::new(60),
+            player: ECSEntityId::DANGLING,
+            selected: ECSEntityId::DANGLING,
             chunks: Vec::new(),
             player_chunk: ChunkPos::new(0, 0),
             tile_scale: 40,
+            screen: Rect::new(SCREEN_X.into(), SCREEN_Y.into()),
+            event_handler: EventHandler::new(),
         };
 
         s
@@ -81,22 +70,14 @@ impl<'a> Game<'a> {
 
     pub fn init(&mut self) -> Result<(), Error> {
         self.player = self.spawn(PlayerBehavior, ());
-
         let chunk = ChunkPos::new(0, 0);
-
         self.generate_chunk(chunk.clone())?;
-
-        self.spawn(TestBehavior, (Position::tile(chunk.clone(), 0, 0),));
-
-        self.spawn(TreeBehavior, (Position::tile(chunk.clone(), 1, 1), ZIndex::new(1)));
-        self.spawn(TreeBehavior, (Position::tile(chunk.clone(), 1, 0), ZIndex::new(1)));
-        self.spawn(TreeBehavior, (Position::tile(chunk.clone(), 2, 1), ZIndex::new(1)));
-        self.spawn(TreeBehavior, (Position::tile(chunk.clone(), 4, 1), ZIndex::new(1)));
-        self.spawn(TreeBehavior, (Position::tile(chunk.clone(), 4, 2), ZIndex::new(1)));
-        self.spawn(TreeBehavior, (Position::tile(chunk.clone(), 4, 3), ZIndex::new(1)));
-
+        self.spawn(TestBehavior, ());
+        self.spawn(TreeBehavior, (
+            Position::tile(chunk.clone(), 1, 1)
+            .top()
+        ,));
         self.update_loaded(true)?;
-
         Ok(())
     }
 
@@ -104,6 +85,110 @@ impl<'a> Game<'a> {
             (&mut self, texture_creator: &'a TextureCreator<WindowContext>) 
             -> Result<(), Error> {
         load_textures(&texture_creator, &mut self.textures)
+    }
+
+    pub fn render(&self, canvas: &mut Canvas) -> Result<(), Error> {
+        let screen = Rect::new(SCREEN_X.into(), SCREEN_Y.into());
+
+        let timer = debug::Timer::new("rendering");
+        for id in &self.loaded.ids {
+            let rect =
+                if let Ok(pos) = self.ecs.get::<&Position>(*id) {
+                    self.get_sdl_rect(pos.deref().clone())?
+                } else {
+                    continue
+                };
+
+            let render_info = RenderInfo{
+                screen,
+                rect,
+            };
+
+            let res =
+                (self.get_behavior(*id).render)
+                (&self.ecs, *id, &render_info, &self.textures, canvas);
+            if res.is_err() {
+                eprintln!("Error: {:?}", res);
+            }
+        }
+        timer.done();
+
+        Ok(())
+    }
+
+    pub fn update(&mut self, event_pump: &mut EventPump) -> Result<bool, Error> {
+        let timer = debug::Timer::new("handling events");
+        self.event_handler.reset();
+        self.event_handler.register_keyboard_state(event_pump.keyboard_state());
+
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. } => {
+                    return Ok(true);
+                },
+                Event::MouseWheel { y, .. } => {
+                    self.tile_scale =
+                        (self.tile_scale as i32).saturating_sub(y).min(70).max(30) as u32;
+                },
+                Event::KeyDown { scancode, .. } => {
+                    if let Some(scancode) = scancode {
+                        self.event_handler.register_scancode(scancode);
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        // self.event_handler.print();
+
+        let update_data = UpdateData{
+            events: self.event_handler.get_events()
+        };
+        timer.done();
+
+        self.update_loaded(false)?;
+
+        let timer = debug::Timer::new("updating");
+        for id in &self.loaded.ids {
+            let res =
+                (self.get_behavior(*id).update)
+                (&mut self.ecs, *id, &update_data);
+            if res.is_err() {
+                eprintln!("Error: {:?}", res);
+            }
+        }
+        timer.done();
+
+        Ok(false)
+    }
+
+    fn get_sdl_rect(&self, pos: Position) -> Result<rect::Rect, Error> {
+        let player = self.ecs.get::<&Position>(self.player)?;
+
+        let rect = if pos.is_free() {
+            rect::Rect::new(
+                ((pos.x() as f32 - player.x()) * self.tile_scale as f32) as i32
+                    + self.screen.width as i32 / 2,
+                ((pos.y() as f32 - player.y()) * self.tile_scale as f32) as i32
+                    + self.screen.height as i32 / 2,
+                self.tile_scale,
+                self.tile_scale,
+            )
+
+        } else {
+            rect::Rect::new(
+                self.screen.width as i32 / 2
+                    + (pos.x() * self.tile_scale as PosType) as i32
+                    - (player.x() * self.tile_scale as f32) as i32,
+                self.screen.height as i32 / 2
+                    + (pos.y() * self.tile_scale as PosType) as i32
+                    - (player.y() * self.tile_scale as f32) as i32,
+                self.tile_scale,
+                self.tile_scale,
+            )
+        };
+
+        Ok(rect)
     }
 
     fn update_loaded(&mut self, force: bool) -> Result<(), Error> {
@@ -143,20 +228,11 @@ impl<'a> Game<'a> {
                 core::array::from_fn(|_| Vec::new());
             for (id, (pos,)) in self.ecs.query::<(&Position,)>().iter() {
                 if chunks.contains(&pos.chunk()) {
-                    let has_zindex = self.ecs.get::<&ZIndex>(id).is_ok();
                     render_order[
                         if id == self.player {
                             2
                         } else {
-                            match pos.pos {
-                                PosKind::Free{ .. } => {
-                                    if has_zindex { 4 } else { 1 }
-                                },
-
-                                PosKind::Tile{ .. } => {
-                                    if has_zindex { 3 } else { 0 }
-                                }
-                            }
+                            pos.order()
                         }
                     ].push(id);
                 }
@@ -185,91 +261,14 @@ impl<'a> Game<'a> {
         Ok(())
     }
 
-    pub fn render(&self, canvas: &mut Canvas) -> Result<(), Error> {
-        let player = self.ecs.get::<&Position>(self.player)?;
-        let screen = Rect::new(SCREEN_X.into(), SCREEN_Y.into());
-
-        let timer = debug::Timer::new("rendering");
-        for id in &self.loaded.ids {
-            let rect =
-                if let Ok(pos) = self.ecs.get::<&Position>(*id) {
-                    match pos.pos {
-                        PosKind::Free{ .. } => rect::Rect::new(
-                            ((pos.x() as f32 - player.x()) * self.tile_scale as f32) as i32
-                                + screen.width as i32 / 2,
-                            ((pos.y() as f32 - player.y()) * self.tile_scale as f32) as i32
-                                + screen.height as i32 / 2,
-                            self.tile_scale,
-                            self.tile_scale,
-                        ),
-
-                        PosKind::Tile{ .. } => rect::Rect::new(
-                            screen.width as i32 / 2
-                                + (pos.x() * self.tile_scale as PosType) as i32
-                                - (player.x() * self.tile_scale as f32) as i32,
-                            screen.height as i32 / 2
-                                + (pos.y() * self.tile_scale as PosType) as i32
-                                - (player.y() * self.tile_scale as f32) as i32,
-                            self.tile_scale,
-                            self.tile_scale,
-                        )
-                    }
-
-                } else {
-                    continue
-                };
-
-            let render_info = RenderInfo{
-                screen,
-                rect,
-            };
-
-            let res =
-                (self.get_behavior(*id).render)
-                (&self.ecs, *id, &render_info, &self.textures, canvas);
-            if res.is_err() {
-                eprintln!("Error: {:?}", res);
-            }
-        }
-        timer.done();
-
-        Ok(())
-    }
-
-    pub fn update(&mut self, update_data: &UpdateData) -> Result<(), Error> {
-        for event in &update_data.events {
-            match event {
-                Event::MouseWheel { y, .. } => {
-                    self.tile_scale =
-                        (self.tile_scale as i32).saturating_sub(*y).min(70).max(30) as u32;
-                },
-                _ => {}
-            }
-        }
-
-        self.update_loaded(false)?;
-
-        let timer = debug::Timer::new("updating");
-        for id in &self.loaded.ids {
-            let res =
-                (self.get_behavior(*id).update)
-                (&mut self.ecs, *id, &update_data);
-            if res.is_err() {
-                eprintln!("Error: {:?}", res);
-            }
-        }
-        timer.done();
-
-        Ok(())
-    }
-
     fn get_behavior(&self, id: ECSEntityId) -> GameObjectBehavior {
-        *self.behaviors.get(&id).unwrap_or_else(|| &DefaultBehavior)
+        *self.behaviors.get(&id).unwrap()//_or_else(|| &DefaultBehavior)
     }
 
     fn spawn
             (&mut self, behavior: GameObjectBehavior, components: impl DynamicBundle)
             -> ECSEntityId {
+
         let id = self.ecs.spawn(components);
         self.behaviors.insert(id, behavior);
         let res =

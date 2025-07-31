@@ -1,6 +1,7 @@
 use crate::behavior::base::Canvas;
 use crate::random;
 use crate::types::Error;
+use crate::debug;
 
 use sdl2::render::{TextureCreator, BlendMode};
 pub use sdl2::render::Texture as SDLTexture;
@@ -90,6 +91,8 @@ pub fn load_textures
             textures: &mut Textures<'a>
         ) -> Result<(), Error> {
 
+    let timer = debug::Timer::new("loading textures");
+
     let file = File::open("assets/default/textures/textures.json")?;
     let reader = BufReader::new(file);
     let hashmap: HashMap<String, Vec<Vec<(u8, u8, u8, u8)>>>
@@ -120,6 +123,8 @@ pub fn load_textures
 
         textures.insert(id, Texture::new(texture));
     }
+
+    timer.done();
 
     Ok(())
 }

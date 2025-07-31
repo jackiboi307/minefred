@@ -21,13 +21,13 @@ fn update(
 
     if let Ok(mut pos) = ecs.get::<&mut Position>(ecs_id) {
         let speed =
-            if update_data.is_pressed([K::LShift])
+            if update_data.events.key("RUN")
                 { 0.2 } else { 0.1 };
 
-        if update_data.is_pressed([K::D, K::Right]) { pos.move_x(speed); }
-        if update_data.is_pressed([K::A, K::Left])  { pos.move_x(-speed); }
-        if update_data.is_pressed([K::S, K::Down])  { pos.move_y(speed); }
-        if update_data.is_pressed([K::W, K::Up])    { pos.move_y(-speed); }
+        if update_data.events.key("MOVE_RIGHT") { pos.move_x(speed); }
+        if update_data.events.key("MOVE_LEFT")  { pos.move_x(-speed); }
+        if update_data.events.key("MOVE_DOWN")  { pos.move_y(speed); }
+        if update_data.events.key("MOVE_UP")    { pos.move_y(-speed); }
     }
 
     Ok(())

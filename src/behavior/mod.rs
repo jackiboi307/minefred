@@ -1,7 +1,8 @@
+mod render;
+
 pub mod behaviors;
 pub mod base;
-
-mod render;
+pub mod event;
 
 mod behavior;
 pub use behavior::*;
