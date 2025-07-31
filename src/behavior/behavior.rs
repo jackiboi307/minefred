@@ -1,5 +1,5 @@
 use crate::behavior::base::*;
-use crate::behavior::event::Events;
+use crate::event::Events;
 use crate::types::*;
 use crate::textures::Textures;
 
@@ -27,6 +27,7 @@ pub struct GameObjectBehavior {
 
 pub struct UpdateData {
     pub events: Events,
+    // TODO delta time
 }
 
 pub struct RenderInfo {

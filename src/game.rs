@@ -1,6 +1,6 @@
 use crate::behavior::base::*;
 use crate::behavior::behaviors::*;
-use crate::behavior::event::EventHandler;
+use crate::event::EventHandler;
 use crate::types::*;
 use crate::constants::*;
 use crate::utils::*;
@@ -263,6 +263,7 @@ impl<'a> Game<'a> {
 
     fn get_behavior(&self, id: ECSEntityId) -> GameObjectBehavior {
         *self.behaviors.get(&id).unwrap()//_or_else(|| &DefaultBehavior)
+        // DefaultBehavior
     }
 
     fn spawn

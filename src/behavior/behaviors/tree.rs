@@ -1,5 +1,5 @@
 use crate::behavior::base::*;
-use crate::behavior::render::texture::render;
+use crate::render::texture::render;
 
 fn init(
         ecs: &mut ECSWorld, 

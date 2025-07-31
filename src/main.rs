@@ -7,6 +7,8 @@ mod game;
 mod debug;
 mod types;
 mod utils;
+mod event;
+mod render;
 mod random;
 mod behavior;
 mod textures;
@@ -60,9 +62,9 @@ fn run() -> Result<(), Error> {
         canvas.present();
 
         let elapsed = timer.elapsed() as u64;
-        if elapsed > 16 {
-            println!("lag: {}", elapsed);
-        }
+        // if elapsed > 1000 / FPS {
+        //     println!("lag! +{} ms ({} ms)", elapsed - 1000 / FPS, elapsed);
+        // }
 
         // Wait for a short duration
         std::thread::sleep(Duration::from_millis(
