@@ -3,9 +3,9 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
-pub use crate::behavior::*;
+pub use crate::gameobjtype::*;
 pub use crate::components::*;
-pub use crate::behavior::behaviors::DefaultBehavior;
+// pub use crate::gameobjtype::types::DefaultBehavior;
 pub use crate::textures::{Textures, TextureComponent};
 pub use crate::types::Error;
 

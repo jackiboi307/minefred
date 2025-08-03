@@ -1,4 +1,4 @@
-use crate::behavior::base::Canvas;
+use crate::gameobjtype::base::Canvas;
 use crate::random;
 use crate::types::Error;
 use crate::debug;

@@ -1,5 +1,5 @@
-use crate::behavior::base::*;
-use crate::behavior::behaviors::*;
+use crate::gameobjtype::base::*;
+use crate::gameobjtype::types::*;
 use crate::event::EventHandler;
 use crate::types::*;
 use crate::constants::*;
@@ -70,13 +70,13 @@ impl<'a> Game<'a> {
 
     pub fn init(&mut self) -> Result<(), Error> {
         self.player = self.spawn(PlayerBehavior, ());
-        let chunk = ChunkPos::new(0, 0);
-        self.generate_chunk(chunk.clone())?;
-        self.spawn(TestBehavior, ());
-        self.spawn(TreeBehavior, (
-            Position::tile(chunk.clone(), 1, 1)
-            .top()
-        ,));
+        // let chunk = ChunkPos::new(0, 0);
+        // self.generate_chunk(chunk.clone())?;
+        // self.spawn(TestBehavior, ());
+        // self.spawn(TreeBehavior, (
+        //     Position::tile(chunk.clone(), 1, 1)
+        //     .top()
+        // ,));
         self.update_loaded(true)?;
         Ok(())
     }
@@ -284,15 +284,15 @@ impl<'a> Game<'a> {
     fn generate_chunk
             (&mut self, pos: ChunkPos) -> Result<(), Error> {
 
-        for col in 0..CHUNK_SIZE {
-            for row in 0..CHUNK_SIZE {
-                self.spawn(TestTileBehavior, (
-                    Position::tile(pos.clone(), col as u8, row as u8),
-                ));
-            }
-        }
+        // for col in 0..CHUNK_SIZE {
+        //     for row in 0..CHUNK_SIZE {
+        //         self.spawn(TestTileBehavior, (
+        //             Position::tile(pos.clone(), col as u8, row as u8),
+        //         ));
+        //     }
+        // }
 
-        self.chunks.push(pos);
+        // self.chunks.push(pos);
 
         Ok(())
     }

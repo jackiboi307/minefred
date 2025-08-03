@@ -1,4 +1,4 @@
-use crate::behavior::base::*;
+use crate::gameobjtype::base::*;
 use crate::textures::{copy_texture, TextureComponent};
 
 pub fn render(

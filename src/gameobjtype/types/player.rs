@@ -1,4 +1,4 @@
-use crate::behavior::base::*;
+use crate::gameobjtype::base::*;
 use crate::render::texture::render;
 use crate::types::*;
 

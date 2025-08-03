@@ -10,10 +10,10 @@ mod utils;
 mod event;
 mod render;
 mod random;
-mod behavior;
 mod textures;
 mod constants;
 mod components;
+mod gameobjtype;
 
 use game::Game;
 use constants::{SCREEN_X, SCREEN_Y};
