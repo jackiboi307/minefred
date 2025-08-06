@@ -1,21 +1,17 @@
-use crate::behavior::base::*;
-use crate::render::texture::render;
+use crate::gameobjtype::base::*;
 
-fn init(
-        ecs: &mut ECSWorld, 
-        ecs_id: ECSEntityId,
-        textures: &Textures) -> Result<(), Error> {
+fn init<'a>(entity: &'a mut EntityBuilder) -> Result<&'a mut EntityBuilder, Error> {
+    entity
+        .add(
+            TextureComponent::new("grass")
+            .random_direction())
+    ;
 
-    let texture =
-        TextureComponent::new(&textures, "grass")
-        .random_direction();
-    ecs.insert(ecs_id, (texture,))?;
-    Ok(())
+    Ok(entity)
 }
 
-#[allow(non_upper_case_globals)]
-pub const TestTileBehavior: GameObjectBehavior = GameObjectBehavior{
-    init,
-    render,
-    update: DefaultBehavior.update,
+pub const TYPE: GameObjectType = GameObjectType{
+    key: "test_tile",
+    init: Some(init),
+    update: None,
 };

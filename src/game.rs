@@ -1,10 +1,9 @@
 use crate::gameobjtype::base::*;
-use crate::gameobjtype::types::*;
 use crate::event::EventHandler;
 use crate::types::*;
 use crate::constants::*;
 use crate::utils::*;
-use crate::textures::{Textures, load_textures};
+use crate::textures::{Textures, load_textures, copy_texture};
 use crate::debug;
 
 use sdl2::render::TextureCreator;
@@ -35,8 +34,8 @@ impl Loaded {
 
 pub struct Game<'a> {
     ecs: ECSWorld,
+    types: GameObjectTypes,
     textures: Textures<'a>,
-    behaviors: HashMap<ECSEntityId, GameObjectBehavior>,
     loaded: Loaded,
     loaded_update_counter: Counter,
     player: ECSEntityId,
@@ -52,8 +51,8 @@ impl<'a> Game<'a> {
     pub fn new() -> Self {
         let s = Self{
             ecs: ECSWorld::new(),
+            types: GameObjectTypes::generate(),
             textures: HashMap::new(),
-            behaviors: HashMap::new(),
             loaded: Loaded::new(),
             loaded_update_counter: Counter::new(60),
             player: ECSEntityId::DANGLING,
@@ -69,14 +68,12 @@ impl<'a> Game<'a> {
     }
 
     pub fn init(&mut self) -> Result<(), Error> {
-        self.player = self.spawn(PlayerBehavior, ());
-        // let chunk = ChunkPos::new(0, 0);
-        // self.generate_chunk(chunk.clone())?;
-        // self.spawn(TestBehavior, ());
-        // self.spawn(TreeBehavior, (
-        //     Position::tile(chunk.clone(), 1, 1)
-        //     .top()
-        // ,));
+        self.player = self.spawn("player", ())?;
+        let chunk = ChunkPos::new(0, 0);
+        self.generate_chunk(chunk.clone())?;
+        self.spawn("tree", (Position::tile(chunk.clone(), 1, 1),))?;
+        self.spawn("tree", (Position::tile(chunk.clone(), 2, 1),))?;
+        self.spawn("test", ())?;
         self.update_loaded(true)?;
         Ok(())
     }
@@ -88,8 +85,6 @@ impl<'a> Game<'a> {
     }
 
     pub fn render(&self, canvas: &mut Canvas) -> Result<(), Error> {
-        let screen = Rect::new(SCREEN_X.into(), SCREEN_Y.into());
-
         let timer = debug::Timer::new("rendering");
         for id in &self.loaded.ids {
             let rect =
@@ -99,16 +94,8 @@ impl<'a> Game<'a> {
                     continue
                 };
 
-            let render_info = RenderInfo{
-                screen,
-                rect,
-            };
-
-            let res =
-                (self.get_behavior(*id).render)
-                (&self.ecs, *id, &render_info, &self.textures, canvas);
-            if res.is_err() {
-                eprintln!("Error: {:?}", res);
+            if let Ok(texture) = self.ecs.get::<&TextureComponent>(*id) {
+                copy_texture(canvas, &self.textures, &texture, rect)?;
             }
         }
         timer.done();
@@ -148,13 +135,24 @@ impl<'a> Game<'a> {
 
         self.update_loaded(false)?;
 
-        let timer = debug::Timer::new("updating");
+        // TODO dont do this if not necessary
+        let timer = debug::Timer::new("getting update fns");
+        let mut id_update_fn_pairs = Vec::new();
         for id in &self.loaded.ids {
-            let res =
-                (self.get_behavior(*id).update)
-                (&mut self.ecs, *id, &update_data);
+            if let Ok(update_fn) = self.ecs.get::<&UpdateFn>(*id) {
+                id_update_fn_pairs.push((
+                    *id,
+                    self.types.get_update_fn_from_id(update_fn.id)
+                ));
+            }
+        }
+        timer.done();
+
+        let timer = debug::Timer::new("updating");
+        for (id, update_fn) in id_update_fn_pairs {
+            let res = update_fn(&mut self.ecs, id, &update_data);
             if res.is_err() {
-                eprintln!("Error: {:?}", res);
+                eprintln!("error: {:?}", res);
             }
         }
         timer.done();
@@ -224,8 +222,10 @@ impl<'a> Game<'a> {
             timer.done();
             
             let timer = debug::Timer::new("getting ids");
+
             let mut render_order: [Vec<ECSEntityId>; 5] =
                 core::array::from_fn(|_| Vec::new());
+
             for (id, (pos,)) in self.ecs.query::<(&Position,)>().iter() {
                 if chunks.contains(&pos.chunk()) {
                     render_order[
@@ -237,6 +237,7 @@ impl<'a> Game<'a> {
                     ].push(id);
                 }
             }
+
             render_order[3].sort_unstable_by(|id1, id2| {
                 let pos1 = self.ecs.get::<&Position>(*id1).unwrap();
                 let pos2 = self.ecs.get::<&Position>(*id2).unwrap();
@@ -250,7 +251,9 @@ impl<'a> Game<'a> {
                     Ordering::Greater
                 }
             });
+
             let ids = render_order.iter().flat_map(|v| v.iter()).cloned().collect();
+
             timer.done();
 
             self.loaded = Loaded{
@@ -261,38 +264,30 @@ impl<'a> Game<'a> {
         Ok(())
     }
 
-    fn get_behavior(&self, id: ECSEntityId) -> GameObjectBehavior {
-        *self.behaviors.get(&id).unwrap()//_or_else(|| &DefaultBehavior)
-        // DefaultBehavior
-    }
-
     fn spawn
-            (&mut self, behavior: GameObjectBehavior, components: impl DynamicBundle)
-            -> ECSEntityId {
+            (&mut self, type_key: &'static str, components: impl DynamicBundle)
+            -> Result<ECSEntityId, Error> {
 
-        let id = self.ecs.spawn(components);
-        self.behaviors.insert(id, behavior);
-        let res =
-            (self.get_behavior(id).init)
-            (&mut self.ecs, id, &self.textures);
-        if res.is_err() {
-            eprintln!("Error: {:?}", res);
-        }
-        id
+        let mut builder = EntityBuilder::new();
+        builder.add_bundle(components);
+        self.types.init_entity(&mut builder, type_key)?;
+        let entity = builder.build();
+        let id = self.ecs.spawn(entity);
+        Ok(id)
     }
 
     fn generate_chunk
             (&mut self, pos: ChunkPos) -> Result<(), Error> {
 
-        // for col in 0..CHUNK_SIZE {
-        //     for row in 0..CHUNK_SIZE {
-        //         self.spawn(TestTileBehavior, (
-        //             Position::tile(pos.clone(), col as u8, row as u8),
-        //         ));
-        //     }
-        // }
+        for col in 0..CHUNK_SIZE {
+            for row in 0..CHUNK_SIZE {
+                self.spawn("test_tile", (
+                    Position::tile(pos.clone(), col as u8, row as u8),
+                ))?;
+            }
+        }
 
-        // self.chunks.push(pos);
+        self.chunks.push(pos);
 
         Ok(())
     }

@@ -1,17 +1,13 @@
 use crate::gameobjtype::base::*;
-use crate::render::texture::render;
 use crate::types::*;
 
-fn init(
-        ecs: &mut ECSWorld, 
-        ecs_id: ECSEntityId,
-        textures: &Textures) -> Result<(), Error> {
+fn init<'a>(entity: &'a mut EntityBuilder) -> Result<&'a mut EntityBuilder, Error> {
+    entity
+        .add(Position::free(0.0, 0.0))
+        .add(TextureComponent::new("player"))
+    ;
 
-    ecs.insert(ecs_id, (
-        Position::free(0.0, 0.0),
-        TextureComponent::new(textures, "player"),
-    ))?;
-    Ok(())
+    Ok(entity)
 }
 
 fn update(
@@ -33,9 +29,8 @@ fn update(
     Ok(())
 }
 
-#[allow(non_upper_case_globals)]
-pub const PlayerBehavior: GameObjectBehavior = GameObjectBehavior{
-    init,
-    render,
-    update,
+pub const TYPE: GameObjectType = GameObjectType{
+    key: "player",
+    init: Some(init),
+    update: Some(update),
 };

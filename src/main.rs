@@ -8,7 +8,6 @@ mod debug;
 mod types;
 mod utils;
 mod event;
-mod render;
 mod random;
 mod textures;
 mod constants;

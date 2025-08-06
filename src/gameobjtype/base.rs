@@ -11,12 +11,15 @@ pub use crate::types::Error;
 
 pub use hecs::World as ECSWorld;
 pub use hecs::Entity as ECSEntityId;
+pub use hecs::EntityBuilder;
 
 pub use sdl2::keyboard::Scancode as K;
 
 pub type Canvas = sdl2::render::Canvas<sdl2::video::Window>;
 
 use crate::types::*;
+
+
 
 // pub fn calc_pos(pos: Position, size: Rect, offset: Offset) -> Position {
 //     Position::new(

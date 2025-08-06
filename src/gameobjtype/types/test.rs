@@ -1,21 +1,16 @@
-use crate::behavior::base::*;
-use crate::render::texture::render;
+use crate::gameobjtype::base::*;
 
-fn init(
-        ecs: &mut ECSWorld, 
-        ecs_id: ECSEntityId,
-        textures: &Textures) -> Result<(), Error> {
+fn init<'a>(entity: &'a mut EntityBuilder) -> Result<&'a mut EntityBuilder, Error> {
+    entity
+        .add(Position::free(1.0, 1.0))
+        .add(TextureComponent::new("error"))
+    ;
 
-    ecs.insert(ecs_id, (
-        Position::free(1.0, 1.0),
-        TextureComponent::new(&textures, "error"),
-    ))?;
-    Ok(())
+    Ok(entity)
 }
 
-#[allow(non_upper_case_globals)]
-pub const TestBehavior: GameObjectBehavior = GameObjectBehavior{
-    init,
-    render,
-    update: DefaultBehavior.update,
+pub const TYPE: GameObjectType = GameObjectType{
+    key: "test",
+    init: Some(init),
+    update: None,
 };

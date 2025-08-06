@@ -4,6 +4,8 @@ pub type PosType = f32;
 pub type SizeType = u16;
 pub type ChunkPosType = i32;
 
+pub type UpdateFnIdType = u8;
+
 #[derive(Clone, Copy)]
 pub struct Rect {
     pub width:  SizeType,

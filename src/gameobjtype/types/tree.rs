@@ -1,22 +1,19 @@
-use crate::behavior::base::*;
-use crate::render::texture::render;
+use crate::gameobjtype::base::*;
 
-fn init(
-        ecs: &mut ECSWorld, 
-        ecs_id: ECSEntityId,
-        textures: &Textures) -> Result<(), Error> {
+fn init<'a>(entity: &'a mut EntityBuilder) -> Result<&'a mut EntityBuilder, Error> {
+    entity
+        .add(
+            TextureComponent::new("tree")
+            .set_scale(2.0))
+    ;
 
-    let texture =
-        TextureComponent::new(&textures, "tree")
-        .set_scale(2.0);
-        // .random_direction();
-    ecs.insert(ecs_id, (texture,))?;
-    Ok(())
+    entity.get_mut::<&mut Position>().ok_or("no position specified")?.top();
+
+    Ok(entity)
 }
 
-#[allow(non_upper_case_globals)]
-pub const TreeBehavior: GameObjectBehavior = GameObjectBehavior{
-    init,
-    render,
-    update: DefaultBehavior.update,
+pub const TYPE: GameObjectType = GameObjectType{
+    key: "tree",
+    init: Some(init),
+    update: None,
 };

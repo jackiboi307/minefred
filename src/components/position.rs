@@ -41,10 +41,10 @@ impl Position {
         }
     }
 
-    pub fn top(mut self) -> Self {
+    pub fn top(&mut self) -> &mut Self {
         match self {
-            Self::Free{ ref mut top, .. } => { *top = true; },
-            Self::Tile{ ref mut top, .. } => { *top = true; },
+            Self::Free{ top, .. } => { *top = true; },
+            Self::Tile{ top, .. } => { *top = true; },
         };
         self
     }

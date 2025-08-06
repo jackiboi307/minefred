@@ -34,22 +34,23 @@ impl Direction {
 pub struct TextureComponent{
     id: String,
     direction: Direction,
-    valid: bool,
+    // valid: bool,
     scale: f32,
 }
 
 impl TextureComponent {
-    pub fn new(textures: &Textures, id: &'static str) -> Self {
+    pub fn new(id: &'static str) -> Self {
         Self{
             id: id.to_string(),
             direction: Direction::Twelve,
-            valid: textures.get(id).is_some(),
+            // valid: textures.get(id).is_some(),
+            // valid: true,
             scale: 1.0,
         }
     }
 
     pub fn random_direction(mut self) -> Self {
-        if !self.valid { return self }
+        // if !self.valid { return self }
 
         self.direction =
             match random::int(0..=3) {
@@ -63,7 +64,7 @@ impl TextureComponent {
     }
 
     pub fn set_scale(mut self, scale: f32) -> Self {
-        if !self.valid { return self }
+        // if !self.valid { return self }
         self.scale = scale;
         self
     }

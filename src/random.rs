@@ -1,6 +1,7 @@
 use rand::*;
 use rand::distr::uniform::{SampleUniform, SampleRange};
 
+#[allow(dead_code)]
 pub fn int
     <T, R>
     (range: R) -> T
