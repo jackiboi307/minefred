@@ -3,6 +3,7 @@ use std::time::Instant;
 const PRINT_DEBUG: bool = true;
 const PRINT_TIMER: bool = false && PRINT_DEBUG;
 const DO_NOT_PRINT_0_MS: bool = true;
+pub const PRINT_LAG: bool = false;
 
 pub struct Timer {
     label: &'static str,

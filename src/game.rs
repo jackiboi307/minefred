@@ -7,8 +7,10 @@ use crate::textures::{Textures, load_textures, copy_texture};
 use crate::debug;
 
 use sdl2::render::TextureCreator;
+use sdl2::pixels::Color;
 use sdl2::video::WindowContext;
 use sdl2::event::Event;
+use sdl2::mouse::MouseButton;
 use sdl2::EventPump;
 use sdl2::rect;
 
@@ -18,7 +20,6 @@ use hecs::DynamicBundle;
 
 use std::collections::HashMap;
 use std::cmp::Ordering;
-use std::ops::Deref;
 
 struct Loaded {
     ids: Vec<ECSEntityId>,
@@ -87,18 +88,25 @@ impl<'a> Game<'a> {
     pub fn render(&self, canvas: &mut Canvas) -> Result<(), Error> {
         let timer = debug::Timer::new("rendering");
         for id in &self.loaded.ids {
-            let rect =
-                if let Ok(pos) = self.ecs.get::<&Position>(*id) {
-                    self.get_sdl_rect(pos.deref().clone())?
-                } else {
-                    continue
-                };
+            let rect = if let Ok(rect) = self.get_sdl_rect(*id) {
+                rect } else { continue };
 
             if let Ok(texture) = self.ecs.get::<&TextureComponent>(*id) {
                 copy_texture(canvas, &self.textures, &texture, rect)?;
             }
         }
         timer.done();
+
+        if let Ok(rect) = self.get_sdl_rect(self.selected) {
+            canvas.set_draw_color(Color::RGB(255, 255, 255));
+            canvas.draw_lines([
+                rect.top_left(),
+                rect.top_right(),
+                rect.bottom_right(),
+                rect.bottom_left(),
+                rect.top_left(),
+            ].as_slice())?;
+        }
 
         Ok(())
     }
@@ -122,11 +130,12 @@ impl<'a> Game<'a> {
                         self.event_handler.register_scancode(scancode);
                     }
                 },
+                Event::MouseButtonDown { mouse_btn, .. } => {
+                    // ... 
+                }
                 _ => {}
             }
         }
-
-        // self.event_handler.print();
 
         let update_data = UpdateData{
             events: self.event_handler.get_events()
@@ -134,6 +143,17 @@ impl<'a> Game<'a> {
         timer.done();
 
         self.update_loaded(false)?;
+
+        let mouse = event_pump.mouse_state();
+        for i in (0..self.loaded.ids.len()).rev() {
+            let id = self.loaded.ids[i];
+            if id == self.player { continue }
+            if let Ok(rect) = self.get_sdl_rect(id) {
+                if rect.contains_point((mouse.x(), mouse.y())) {
+                    self.selected = id;
+                }
+            }
+        }
 
         // TODO dont do this if not necessary
         let timer = debug::Timer::new("getting update fns");
@@ -160,7 +180,10 @@ impl<'a> Game<'a> {
         Ok(false)
     }
 
-    fn get_sdl_rect(&self, pos: Position) -> Result<rect::Rect, Error> {
+    fn get_sdl_rect(&self, id: ECSEntityId) -> Result<rect::Rect, Error> {
+        let pos = if let Ok(pos) = self.ecs.get::<&Position>(id) {
+            pos } else { return Err("no position component".into()) };
+
         let player = self.ecs.get::<&Position>(self.player)?;
 
         let rect = if pos.is_free() {
