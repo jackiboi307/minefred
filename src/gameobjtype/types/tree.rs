@@ -3,7 +3,7 @@ use crate::gameobjtype::base::*;
 fn init<'a>(entity: &'a mut EntityBuilder) -> Result<&'a mut EntityBuilder, Error> {
     entity
         .add(
-            TextureComponent::new("tree")
+            Texture::new("tree")
             .set_scale(2.0))
     ;
 

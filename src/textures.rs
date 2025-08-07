@@ -1,10 +1,9 @@
-use crate::gameobjtype::base::Canvas;
 use crate::random;
-use crate::types::Error;
+use crate::types::*;
 use crate::debug;
 
 use sdl2::render::{TextureCreator, BlendMode};
-pub use sdl2::render::Texture as SDLTexture;
+use sdl2::render::Texture as SDLTexture;
 use sdl2::video::WindowContext;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect;
@@ -70,21 +69,7 @@ impl TextureComponent {
     }
 }
 
-// TODO remove this struct if it proves to be unnecessary
-
-pub struct Texture<'a> {
-    texture: SDLTexture<'a>,
-}
-
-impl<'a> Texture<'a> {
-    fn new(texture: SDLTexture<'a>) -> Self {
-        Self{
-            texture,
-        }
-    }
-}
-
-pub type Textures<'a> = HashMap<String, Texture<'a>>;
+pub type Textures<'a> = HashMap<String, SDLTexture<'a>>;
 
 pub fn load_textures
         <'a>(
@@ -122,7 +107,7 @@ pub fn load_textures
             }
         })?;
 
-        textures.insert(id, Texture::new(texture));
+        textures.insert(id, texture);
     }
 
     timer.done();
@@ -149,7 +134,7 @@ pub fn copy_texture(
     );
 
     canvas.copy_ex(
-        &texture.texture,
+        &texture,
         None,
         Some(rect),
         texture_component.direction.degrees(),

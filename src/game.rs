@@ -1,4 +1,5 @@
-use crate::gameobjtype::base::*;
+use crate::gameobjtype::*;
+use crate::components::*;
 use crate::event::EventHandler;
 use crate::types::*;
 use crate::constants::*;
@@ -16,10 +17,19 @@ use sdl2::rect;
 
 use hecs::World as ECSWorld;
 use hecs::Entity as ECSEntityId; // TODO byt namn
-use hecs::DynamicBundle;
+use hecs::{
+    DynamicBundle,
+    EntityBuilder
+};
 
 use std::collections::HashMap;
 use std::cmp::Ordering;
+
+fn handle_err(label: &str, res: Result<(), impl std::fmt::Display>) {
+    if let Err(res) = res {
+        eprintln!("error: {}: {}", label, res);
+    }
+}
 
 struct Loaded {
     ids: Vec<ECSEntityId>,
@@ -40,7 +50,7 @@ pub struct Game<'a> {
     loaded: Loaded,
     loaded_update_counter: Counter,
     player: ECSEntityId,
-    selected: ECSEntityId,
+    selected: Option<ECSEntityId>,
     chunks: Vec<ChunkPos>,
     player_chunk: ChunkPos,
     tile_scale: u32,
@@ -57,7 +67,7 @@ impl<'a> Game<'a> {
             loaded: Loaded::new(),
             loaded_update_counter: Counter::new(60),
             player: ECSEntityId::DANGLING,
-            selected: ECSEntityId::DANGLING,
+            selected: None,
             chunks: Vec::new(),
             player_chunk: ChunkPos::new(0, 0),
             tile_scale: 40,
@@ -91,21 +101,23 @@ impl<'a> Game<'a> {
             let rect = if let Ok(rect) = self.get_sdl_rect(*id) {
                 rect } else { continue };
 
-            if let Ok(texture) = self.ecs.get::<&TextureComponent>(*id) {
+            if let Ok(texture) = self.ecs.get::<&Texture>(*id) {
                 copy_texture(canvas, &self.textures, &texture, rect)?;
             }
         }
         timer.done();
 
-        if let Ok(rect) = self.get_sdl_rect(self.selected) {
-            canvas.set_draw_color(Color::RGB(255, 255, 255));
-            canvas.draw_lines([
-                rect.top_left(),
-                rect.top_right(),
-                rect.bottom_right(),
-                rect.bottom_left(),
-                rect.top_left(),
-            ].as_slice())?;
+        if let Some(selected) = self.selected {
+            if let Ok(rect) = self.get_sdl_rect(selected) {
+                canvas.set_draw_color(Color::RGB(255, 255, 255));
+                canvas.draw_lines([
+                    rect.top_left(),
+                    rect.top_right(),
+                    rect.bottom_right(),
+                    rect.bottom_left(),
+                    rect.top_left(),
+                ].as_slice())?;
+            }
         }
 
         Ok(())
@@ -115,6 +127,8 @@ impl<'a> Game<'a> {
         let timer = debug::Timer::new("handling events");
         self.event_handler.reset();
         self.event_handler.register_keyboard_state(event_pump.keyboard_state());
+
+        let mut break_block = false;
 
         for event in event_pump.poll_iter() {
             match event {
@@ -131,7 +145,12 @@ impl<'a> Game<'a> {
                     }
                 },
                 Event::MouseButtonDown { mouse_btn, .. } => {
-                    // ... 
+                    match mouse_btn {
+                        MouseButton::Right => {
+                            break_block = true;
+                        },
+                        _ => {}
+                    }
                 }
                 _ => {}
             }
@@ -144,14 +163,26 @@ impl<'a> Game<'a> {
 
         self.update_loaded(false)?;
 
-        let mouse = event_pump.mouse_state();
-        for i in (0..self.loaded.ids.len()).rev() {
-            let id = self.loaded.ids[i];
-            if id == self.player { continue }
-            if let Ok(rect) = self.get_sdl_rect(id) {
-                if rect.contains_point((mouse.x(), mouse.y())) {
-                    self.selected = id;
+        self.selected = 'block: {
+            let mouse = event_pump.mouse_state();
+
+            for i in (0..self.loaded.ids.len()).rev() {
+                let id = self.loaded.ids[i];
+                if id == self.player { continue }
+                if let Ok(rect) = self.get_sdl_rect(id) {
+                    if rect.contains_point((mouse.x(), mouse.y())) {
+                        break 'block Some(id);
+                    }
                 }
+            }
+
+            None
+        };
+
+        if let Some(selected) = self.selected {
+            if break_block {
+                handle_err("despawning selected entity",
+                    self.ecs.despawn(selected).into());
             }
         }
 
@@ -170,10 +201,8 @@ impl<'a> Game<'a> {
 
         let timer = debug::Timer::new("updating");
         for (id, update_fn) in id_update_fn_pairs {
-            let res = update_fn(&mut self.ecs, id, &update_data);
-            if res.is_err() {
-                eprintln!("error: {:?}", res);
-            }
+            handle_err(&format!("updating entity {}", id.id()).to_string(),
+                update_fn(&mut self.ecs, id, &update_data));
         }
         timer.done();
 

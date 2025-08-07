@@ -4,7 +4,7 @@ use crate::types::*;
 fn init<'a>(entity: &'a mut EntityBuilder) -> Result<&'a mut EntityBuilder, Error> {
     entity
         .add(Position::free(0.0, 0.0))
-        .add(TextureComponent::new("player"))
+        .add(Texture::new("player"))
     ;
 
     Ok(entity)

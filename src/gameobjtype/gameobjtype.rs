@@ -3,7 +3,6 @@ use crate::gameobjtype::types::TYPES;
 use crate::event::Events;
 use crate::types::*;
 
-use sdl2::rect;
 use std::collections::HashMap;
 
 type InitFnType = fn(
