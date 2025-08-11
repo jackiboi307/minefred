@@ -11,12 +11,11 @@ use sdl2::render::TextureCreator;
 use sdl2::pixels::Color;
 use sdl2::video::WindowContext;
 use sdl2::event::Event;
-use sdl2::mouse::MouseButton;
 use sdl2::EventPump;
 use sdl2::rect;
 
 use hecs::World as ECSWorld;
-use hecs::Entity as ECSEntityId; // TODO byt namn
+use hecs::Entity as EntityId;
 use hecs::{
     DynamicBundle,
     EntityBuilder
@@ -32,7 +31,7 @@ fn handle_err(label: &str, res: Result<(), impl std::fmt::Display>) {
 }
 
 struct Loaded {
-    ids: Vec<ECSEntityId>,
+    ids: Vec<EntityId>,
 }
 
 impl Loaded {
@@ -49,8 +48,7 @@ pub struct Game<'a> {
     textures: Textures<'a>,
     loaded: Loaded,
     loaded_update_counter: Counter,
-    player: ECSEntityId,
-    selected: Option<ECSEntityId>,
+    player: EntityId,
     chunks: Vec<ChunkPos>,
     player_chunk: ChunkPos,
     tile_scale: u32,
@@ -66,8 +64,7 @@ impl<'a> Game<'a> {
             textures: HashMap::new(),
             loaded: Loaded::new(),
             loaded_update_counter: Counter::new(60),
-            player: ECSEntityId::DANGLING,
-            selected: None,
+            player: EntityId::DANGLING,
             chunks: Vec::new(),
             player_chunk: ChunkPos::new(0, 0),
             tile_scale: 40,
@@ -80,6 +77,7 @@ impl<'a> Game<'a> {
 
     pub fn init(&mut self) -> Result<(), Error> {
         self.player = self.spawn("player", ())?;
+        self.spawn("player", ())?;
         let chunk = ChunkPos::new(0, 0);
         self.generate_chunk(chunk.clone())?;
         self.spawn("tree", (Position::tile(chunk.clone(), 1, 1),))?;
@@ -107,16 +105,18 @@ impl<'a> Game<'a> {
         }
         timer.done();
 
-        if let Some(selected) = self.selected {
-            if let Ok(rect) = self.get_sdl_rect(selected) {
-                canvas.set_draw_color(Color::RGB(255, 255, 255));
-                canvas.draw_lines([
-                    rect.top_left(),
-                    rect.top_right(),
-                    rect.bottom_right(),
-                    rect.bottom_left(),
-                    rect.top_left(),
-                ].as_slice())?;
+        if let Ok(player) = self.ecs.get::<&Player>(self.player) {
+            if let Some(selected) = player.selected {
+                if let Ok(rect) = self.get_sdl_rect(selected) {
+                    canvas.set_draw_color(Color::RGB(255, 255, 255));
+                    canvas.draw_lines([
+                        rect.top_left(),
+                        rect.top_right(),
+                        rect.bottom_right(),
+                        rect.bottom_left(),
+                        rect.top_left(),
+                    ].as_slice())?;
+                }
             }
         }
 
@@ -125,10 +125,8 @@ impl<'a> Game<'a> {
 
     pub fn update(&mut self, event_pump: &mut EventPump) -> Result<bool, Error> {
         let timer = debug::Timer::new("handling events");
-        self.event_handler.reset();
-        self.event_handler.register_keyboard_state(event_pump.keyboard_state());
 
-        let mut break_block = false;
+        self.event_handler.reset();
 
         for event in event_pump.poll_iter() {
             match event {
@@ -141,52 +139,47 @@ impl<'a> Game<'a> {
                 },
                 Event::KeyDown { scancode, .. } => {
                     if let Some(scancode) = scancode {
-                        self.event_handler.register_scancode(scancode);
-                    }
+                        self.event_handler.register_event(scancode, true); }
+                },
+                Event::KeyUp { scancode, .. } => {
+                    if let Some(scancode) = scancode {
+                        self.event_handler.register_event(scancode, false); }
                 },
                 Event::MouseButtonDown { mouse_btn, .. } => {
-                    match mouse_btn {
-                        MouseButton::Right => {
-                            break_block = true;
-                        },
-                        _ => {}
-                    }
-                }
+                    self.event_handler.register_event(mouse_btn, true);
+                },
+                Event::MouseButtonUp { mouse_btn, .. } => {
+                    self.event_handler.register_event(mouse_btn, false);
+                },
                 _ => {}
             }
         }
 
-        let update_data = UpdateData{
-            events: self.event_handler.get_events()
-        };
+        let update_data = UpdateData{};
         timer.done();
 
         self.update_loaded(false)?;
 
-        self.selected = 'block: {
-            let mouse = event_pump.mouse_state();
+        self.update_player();
 
-            for i in (0..self.loaded.ids.len()).rev() {
-                let id = self.loaded.ids[i];
-                if id == self.player { continue }
-                if let Ok(rect) = self.get_sdl_rect(id) {
-                    if rect.contains_point((mouse.x(), mouse.y())) {
-                        break 'block Some(id);
+        if let Ok(mut player) = self.ecs.get::<&mut Player>(self.player) {
+            player.selected = 'block: {
+                let mouse = event_pump.mouse_state();
+
+                for i in (0..self.loaded.ids.len()).rev() {
+                    let id = self.loaded.ids[i];
+                    if id == self.player { continue }
+                    if let Ok(rect) = self.get_sdl_rect(id) {
+                        if rect.contains_point((mouse.x(), mouse.y())) {
+                            break 'block Some(id);
+                        }
                     }
                 }
-            }
 
-            None
-        };
-
-        if let Some(selected) = self.selected {
-            if break_block {
-                handle_err("despawning selected entity",
-                    self.ecs.despawn(selected).into());
-            }
+                None
+            };
         }
 
-        // TODO dont do this if not necessary
         let timer = debug::Timer::new("getting update fns");
         let mut id_update_fn_pairs = Vec::new();
         for id in &self.loaded.ids {
@@ -209,7 +202,32 @@ impl<'a> Game<'a> {
         Ok(false)
     }
 
-    fn get_sdl_rect(&self, id: ECSEntityId) -> Result<rect::Rect, Error> {
+    fn update_player(&mut self) {
+        let speed =
+            if self.event_handler.key("run")
+                { 0.2 } else { 0.1 };
+
+        if let Ok(mut pos) = self.ecs.get::<&mut Position>(self.player) {
+            if self.event_handler.key("move_right") { pos.move_x(speed); }
+            if self.event_handler.key("move_left")  { pos.move_x(-speed); }
+            if self.event_handler.key("move_down")  { pos.move_y(speed); }
+            if self.event_handler.key("move_up")    { pos.move_y(-speed); }
+        }
+
+        let selected =
+            if self.event_handler.key("attack") {
+                if let Ok(player) = self.ecs.get::<&Player>(self.player) {
+                    player.selected
+                } else { None }
+            } else { None };
+
+        if let Some(selected) = selected {
+            handle_err("despawning selected entity",
+                self.ecs.despawn(selected).into());
+        }
+    }
+
+    fn get_sdl_rect(&self, id: EntityId) -> Result<rect::Rect, Error> {
         let pos = if let Ok(pos) = self.ecs.get::<&Position>(id) {
             pos } else { return Err("no position component".into()) };
 
@@ -275,7 +293,7 @@ impl<'a> Game<'a> {
             
             let timer = debug::Timer::new("getting ids");
 
-            let mut render_order: [Vec<ECSEntityId>; 5] =
+            let mut render_order: [Vec<EntityId>; 5] =
                 core::array::from_fn(|_| Vec::new());
 
             for (id, (pos,)) in self.ecs.query::<(&Position,)>().iter() {
@@ -318,7 +336,7 @@ impl<'a> Game<'a> {
 
     fn spawn
             (&mut self, type_key: &'static str, components: impl DynamicBundle)
-            -> Result<ECSEntityId, Error> {
+            -> Result<EntityId, Error> {
 
         let mut builder = EntityBuilder::new();
         builder.add_bundle(components);

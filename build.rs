@@ -5,7 +5,7 @@ fn main() {
     println!("cargo::rerun-if-changed=src/gameobjtype/types");
 
     const DIR:      &'static str = "src/gameobjtype/types";
-    const MOD_FILE: &'static str = "src/gameobjtype/types/mod.rs";
+    const MOD_FILE: &'static str = "src/gameobjtype/types.rs";
 
     let entries = fs::read_dir(DIR).expect("failed reading directory");
 

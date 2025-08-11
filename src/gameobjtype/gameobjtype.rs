@@ -1,6 +1,5 @@
 use crate::gameobjtype::base::*;
 use crate::gameobjtype::types::TYPES;
-use crate::event::Events;
 use crate::types::*;
 
 use std::collections::HashMap;
@@ -28,8 +27,23 @@ pub struct GameObjectType {
     // pub render: Option<RenderFnType>,
 }
 
+impl GameObjectType {
+    pub const fn new(key: &'static str) -> Self {
+        Self {
+            key,
+            init: None,
+            update: None
+        }
+    }
+
+    pub const fn init(&mut self, init: InitFnType) -> &mut Self {
+        self.init = Some(init);
+        self
+    }
+}
+
 pub struct UpdateData {
-    pub events: Events,
+    // pub events: EventState,
     // TODO delta time
 }
 

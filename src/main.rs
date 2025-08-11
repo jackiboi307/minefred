@@ -21,6 +21,7 @@ use types::Error;
 use sdl2::pixels::Color;
 
 use std::time::Duration;
+use std::backtrace::Backtrace;
 
 const FPS: u64 = 60;
 
@@ -63,7 +64,7 @@ fn run() -> Result<(), Error> {
         let elapsed = timer.elapsed() as u64;
         if debug::PRINT_LAG && elapsed > 1000 / FPS {
             println!(
-                "lag! +{} ms ({} ms) ({} fps)",
+                "lag! +{:<2} ms ({} ms) ({} fps)",
                 elapsed - 1000 / FPS,
                 elapsed,
                 1000 / elapsed
@@ -80,7 +81,12 @@ fn run() -> Result<(), Error> {
     Ok(())
 }
 
-fn main() -> Result<(), Error> {
-    run()?;
-    Ok(())
+fn main() {
+    let result = run();
+    if let Err(err) = result {
+        print!("Fatal error!\n{}\nBacktrace:\n{}",
+            err,
+            Backtrace::force_capture(),
+        );
+    }
 }

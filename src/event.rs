@@ -1,169 +1,132 @@
-use sdl2::keyboard::{Scancode, KeyboardState};
+use sdl2::keyboard::Scancode;
 use sdl2::mouse::MouseButton;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-enum Button {
+type ActionIdType = u16;
+
+#[derive(Eq, Hash, PartialEq)]
+pub enum Button {
     Key(Scancode),
-
-    #[allow(dead_code)]
     Mouse(MouseButton),
 }
 
+impl Into<Button> for Scancode {
+    fn into(self) -> Button { Button::Key(self) }}
+
+impl Into<Button> for MouseButton {
+    fn into(self) -> Button { Button::Mouse(self) }}
+
 #[derive(Clone)]
-#[allow(dead_code)]
 struct Action {
+    #[allow(dead_code)]
     label: &'static str,
+
     key: &'static str,
     prolonged: bool,
-}
-
-impl Action {
-    fn new(label: &'static str, key: &'static str, prolonged: bool) -> Self {
-        Self{label, key, prolonged}
-    }
-}
-
-struct Bind {
-    button: Button,
-    id: usize,
-}
-
-impl Bind {
-    fn key(scancode: Scancode, id: usize) -> Self {
-        Self{button: Button::Key(scancode), id}
-    }
-}
-
-#[derive(Clone)]
-pub struct Events {
-    action_states: Vec<bool>,
-    keys: Option<HashMap<&'static str, usize>>,
-}
-
-impl Events {
-    fn new(size: usize) -> Self {
-        Self{
-            action_states: vec![false; size],
-            keys: None,
-        }
-    }
-
-    fn add_keys(mut self, keys: HashMap<&'static str, usize>) -> Self {
-        self.keys = Some(keys);
-        self
-    }
 
     #[allow(dead_code)]
-    pub fn id(&self, id: usize) -> bool {
-        self.action_states[id]
-    }
-
-    pub fn key(&self, key: &'static str) -> bool {
-        let keys = self.keys.clone().expect("Event lookup by key is not enabled");
-        let Some(id) = keys.get(key) else {
-            println!("No action with key '{}' found", key);
-            return false
-        };
-        self.action_states[*id]
-    }
+    local: bool,
 }
 
 pub struct EventHandler {
-    actions: Vec<Action>,
-    binds: Vec<Bind>,
-    events: Events,
+    actions: Box<[Action]>,
+    binds: HashMap<Button, ActionIdType>,
+    keys: HashMap<&'static str, ActionIdType>,
+    active: HashSet<ActionIdType>,
 }
 
 impl EventHandler {
-    pub fn reset(&mut self) {
-        self.events = Events::new(self.actions.len());
-    }
-
-    pub fn register_scancode(&mut self, registered_scancode: Scancode) {
-        for bind in &self.binds {
-            if !self.actions[bind.id].prolonged {
-                match bind.button {
-                    Button::Key( scancode ) => {
-                        if scancode == registered_scancode {
-                            self.events.action_states[bind.id] = true;
-                        }
-                    },
-                    _ => {}
-                }
-            }
-        }
-    }
-
-    pub fn register_keyboard_state(&mut self, keyboard_state: KeyboardState) {
-        for bind in &self.binds {
-            if self.actions[bind.id].prolonged {
-                match bind.button {
-                    Button::Key( scancode ) => {
-                        if keyboard_state.is_scancode_pressed(scancode) {
-                            self.events.action_states[bind.id] = true;
-                        }
-                    },
-                    _ => {}
-                }
-            }
-        }
-    }
-
-    fn get_keys(&self) -> HashMap<&'static str, usize> {
-        let mut keys = HashMap::new();
-        for (id, action) in self.actions.clone().into_iter().enumerate() {
-            keys.insert(action.key, id);
-        }
-        keys
-    }
-
-    pub fn get_events(&self) -> Events {
-        self.events.clone().add_keys(self.get_keys())
-    }
-
-    #[allow(dead_code)]
-    fn get_id(self, key: &'static str) -> Option<usize> {
-        for (id, action) in self.actions.into_iter().enumerate() {
-            if key == action.key {
-                return Some(id)
-            }
-        }
-
-        println!("No action with id {} found", key);
-        None
-    }
-
-    #[allow(dead_code)]
-    pub fn print(&self) {
-        for (id, state) in self.events.action_states.clone().into_iter().enumerate() {
-            if state {
-                println!("{}", self.actions[id].label);
-            }
-        }
-    }
-
     pub fn new() -> Self {
+        let mut s = Self {
+            actions: Box::new([]),
+            binds: HashMap::new(),
+            keys: HashMap::new(),
+            active: HashSet::new(),
+        };
+
+        s.init();
+
+        s
+    }
+
+    pub fn init(&mut self) {
         let mut actions = Vec::new();
-        actions.push(Action::new("Move forward", "MOVE_UP", true));
-        actions.push(Action::new("Move back", "MOVE_DOWN", true));
-        actions.push(Action::new("Move left", "MOVE_LEFT", true));
-        actions.push(Action::new("Move right", "MOVE_RIGHT", true));
-        actions.push(Action::new("Run", "RUN", true));
 
-        let num_actions = actions.len();
-
-        let mut binds = Vec::new();
-        binds.push(Bind::key(Scancode::W, 0));
-        binds.push(Bind::key(Scancode::S, 1));
-        binds.push(Bind::key(Scancode::A, 2));
-        binds.push(Bind::key(Scancode::D, 3));
-        binds.push(Bind::key(Scancode::LShift, 4));
-
-        Self{
-            actions,
-            binds,
-            events: Events::new(num_actions),
+        for (button, action) in DEFAULT_BINDS {
+            actions.push(action.clone());
+            let id: ActionIdType = (actions.len() - 1)
+                .try_into().expect("couldn't add action. action id type is too small");
+            self.binds.insert(button, id);
+            self.keys.insert(action.key, id);
         }
+
+        self.actions = actions.into_boxed_slice();
+    }
+
+    pub fn reset(&mut self) {
+        self.active.retain(|&id| self.actions[id as usize].prolonged);
+    }
+
+    pub fn register_event(&mut self, event: impl Into<Button>, down: bool) {
+        let id =
+            if let Some(id) = self.binds.get(&event.into()) {
+                id
+            } else {
+                return
+            };
+
+        if down {
+            self.active.insert(*id);
+        } else {
+            if self.actions[*id as usize].prolonged {
+                self.active.remove(id);
+            }
+        }
+    }
+
+    pub fn key(&self, key: &'static str) -> bool {
+        let id =
+            if let Some(id) = self.keys.get(key) {
+                id
+            } else {
+                println!("invalid action key: '{}'", key);
+                return false
+            };
+
+        self.active.contains(id)
     }
 }
+
+const DEFAULT_BINDS: [(Button, Action); 6] = [
+    (Button::Key(Scancode::W), Action {
+        label: "Move up",
+        key: "move_up",
+        prolonged: true,
+        local: false, }),
+    (Button::Key(Scancode::S), Action {
+        label: "Move down",
+        key: "move_down",
+        prolonged: true,
+        local: false, }),
+    (Button::Key(Scancode::A), Action {
+        label: "Move left",
+        key: "move_left",
+        prolonged: true,
+        local: false, }),
+    (Button::Key(Scancode::D), Action {
+        label: "Move right",
+        key: "move_right",
+        prolonged: true,
+        local: false, }),
+    (Button::Key(Scancode::LShift), Action {
+        label: "Run",
+        key: "run",
+        prolonged: true,
+        local: false, }),
+    (Button::Mouse(MouseButton::Right), Action {
+        label: "Attack / Break",
+        key: "attack",
+        prolonged: false,
+        local: false, }),
+];
