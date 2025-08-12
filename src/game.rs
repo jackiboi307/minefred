@@ -1,6 +1,6 @@
 use crate::gameobjtype::*;
 use crate::components::*;
-use crate::event::EventHandler;
+use crate::event::{ActionHandler, ActionUpdates};
 use crate::types::*;
 use crate::constants::*;
 use crate::utils::*;
@@ -53,7 +53,7 @@ pub struct Game<'a> {
     player_chunk: ChunkPos,
     tile_scale: u32,
     screen: Rect,
-    event_handler: EventHandler,
+    action_handler: ActionHandler,
 }
 
 impl<'a> Game<'a> {
@@ -69,7 +69,7 @@ impl<'a> Game<'a> {
             player_chunk: ChunkPos::new(0, 0),
             tile_scale: 40,
             screen: Rect::new(SCREEN_X.into(), SCREEN_Y.into()),
-            event_handler: EventHandler::new(),
+            action_handler: ActionHandler::new(),
         };
 
         s
@@ -125,8 +125,7 @@ impl<'a> Game<'a> {
 
     pub fn update(&mut self, event_pump: &mut EventPump) -> Result<bool, Error> {
         let timer = debug::Timer::new("handling events");
-
-        self.event_handler.reset();
+        let mut updates = ActionUpdates::new();
 
         for event in event_pump.poll_iter() {
             match event {
@@ -139,28 +138,31 @@ impl<'a> Game<'a> {
                 },
                 Event::KeyDown { scancode, .. } => {
                     if let Some(scancode) = scancode {
-                        self.event_handler.register_event(scancode, true); }
+                        updates.register_event(&self.action_handler, scancode, true); }
                 },
                 Event::KeyUp { scancode, .. } => {
                     if let Some(scancode) = scancode {
-                        self.event_handler.register_event(scancode, false); }
+                        updates.register_event(&self.action_handler, scancode, false); }
                 },
                 Event::MouseButtonDown { mouse_btn, .. } => {
-                    self.event_handler.register_event(mouse_btn, true);
+                    updates.register_event(&self.action_handler, mouse_btn, true);
                 },
                 Event::MouseButtonUp { mouse_btn, .. } => {
-                    self.event_handler.register_event(mouse_btn, false);
+                    updates.register_event(&self.action_handler, mouse_btn, false);
                 },
                 _ => {}
             }
         }
 
-        let update_data = UpdateData{};
         timer.done();
+
+        if let Ok(mut player) = self.ecs.get::<&mut Player>(self.player) {
+            player.action_state.update(&self.action_handler, &updates);
+        }
 
         self.update_loaded(false)?;
 
-        self.update_player();
+        self.update_player()?;
 
         if let Ok(mut player) = self.ecs.get::<&mut Player>(self.player) {
             player.selected = 'block: {
@@ -192,6 +194,8 @@ impl<'a> Game<'a> {
         }
         timer.done();
 
+        let update_data = UpdateData{};
+
         let timer = debug::Timer::new("updating");
         for (id, update_fn) in id_update_fn_pairs {
             handle_err(&format!("updating entity {}", id.id()).to_string(),
@@ -202,20 +206,22 @@ impl<'a> Game<'a> {
         Ok(false)
     }
 
-    fn update_player(&mut self) {
+    fn update_player(&mut self) -> Result<(), Error> {
+        let actions = self.ecs.get::<&Player>(self.player)?.action_state.clone();
+
         let speed =
-            if self.event_handler.key("run")
+            if actions.key("run")
                 { 0.2 } else { 0.1 };
 
         if let Ok(mut pos) = self.ecs.get::<&mut Position>(self.player) {
-            if self.event_handler.key("move_right") { pos.move_x(speed); }
-            if self.event_handler.key("move_left")  { pos.move_x(-speed); }
-            if self.event_handler.key("move_down")  { pos.move_y(speed); }
-            if self.event_handler.key("move_up")    { pos.move_y(-speed); }
+            if actions.key("move_right") { pos.move_x(speed); }
+            if actions.key("move_left")  { pos.move_x(-speed); }
+            if actions.key("move_down")  { pos.move_y(speed); }
+            if actions.key("move_up")    { pos.move_y(-speed); }
         }
 
         let selected =
-            if self.event_handler.key("attack") {
+            if actions.key("attack") {
                 if let Ok(player) = self.ecs.get::<&Player>(self.player) {
                     player.selected
                 } else { None }
@@ -225,6 +231,8 @@ impl<'a> Game<'a> {
             handle_err("despawning selected entity",
                 self.ecs.despawn(selected).into());
         }
+
+        Ok(())
     }
 
     fn get_sdl_rect(&self, id: EntityId) -> Result<rect::Rect, Error> {

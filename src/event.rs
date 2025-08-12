@@ -3,7 +3,7 @@ use sdl2::mouse::MouseButton;
 
 use std::collections::{HashMap, HashSet};
 
-type ActionIdType = u16;
+pub type ActionIdType = u8;
 
 #[derive(Eq, Hash, PartialEq)]
 pub enum Button {
@@ -29,20 +29,90 @@ struct Action {
     local: bool,
 }
 
-pub struct EventHandler {
+#[derive(Clone)]
+pub struct ActionState {
+    momentary: HashSet<&'static str>,
+    prolonged: HashSet<&'static str>,
+}
+
+impl ActionState {
+    pub fn new() -> Self {
+        Self {
+            momentary: HashSet::new(),
+            prolonged: HashSet::new(),
+        }
+    }
+
+    pub fn key(&self, key: &'static str) -> bool {
+        self.prolonged.contains(key) || self.momentary.contains(key)
+    }
+
+    pub fn update(&mut self, handler: &ActionHandler, updates: &ActionUpdates) {
+        self.momentary.clear();
+
+        for id in &updates.add {
+            let action = &handler.actions[*id as usize];
+            if action.prolonged {
+                self.prolonged.insert(action.key);
+            } else {
+                self.momentary.insert(action.key);
+            }
+        }
+
+        for id in &updates.remove {
+            self.prolonged.take(handler.actions[*id as usize].key);
+        }
+    }
+}
+
+pub struct ActionUpdates {
+    add: Vec<ActionIdType>,
+    remove: Vec<ActionIdType>,
+}
+
+impl ActionUpdates {
+    pub fn new() -> Self {
+        Self {
+            add: Vec::new(),
+            remove: Vec::new(),
+        }
+    }
+
+    pub fn register_event(
+            &mut self,
+            handler: &ActionHandler,
+            event: impl Into<Button>,
+            down: bool) {
+
+        let id =
+            if let Some(id) = handler.binds.get(&event.into()) {
+                id
+            } else {
+                return
+            };
+
+        if down {
+            self.add.push(*id);
+        } else {
+            if handler.actions[*id as usize].prolonged {
+                self.remove.push(*id);
+            }
+        }
+    }
+}
+
+pub struct ActionHandler {
     actions: Box<[Action]>,
     binds: HashMap<Button, ActionIdType>,
     keys: HashMap<&'static str, ActionIdType>,
-    active: HashSet<ActionIdType>,
 }
 
-impl EventHandler {
+impl ActionHandler {
     pub fn new() -> Self {
         let mut s = Self {
             actions: Box::new([]),
             binds: HashMap::new(),
             keys: HashMap::new(),
-            active: HashSet::new(),
         };
 
         s.init();
@@ -62,39 +132,6 @@ impl EventHandler {
         }
 
         self.actions = actions.into_boxed_slice();
-    }
-
-    pub fn reset(&mut self) {
-        self.active.retain(|&id| self.actions[id as usize].prolonged);
-    }
-
-    pub fn register_event(&mut self, event: impl Into<Button>, down: bool) {
-        let id =
-            if let Some(id) = self.binds.get(&event.into()) {
-                id
-            } else {
-                return
-            };
-
-        if down {
-            self.active.insert(*id);
-        } else {
-            if self.actions[*id as usize].prolonged {
-                self.active.remove(id);
-            }
-        }
-    }
-
-    pub fn key(&self, key: &'static str) -> bool {
-        let id =
-            if let Some(id) = self.keys.get(key) {
-                id
-            } else {
-                println!("invalid action key: '{}'", key);
-                return false
-            };
-
-        self.active.contains(id)
     }
 }
 
