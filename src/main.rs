@@ -1,8 +1,3 @@
-extern crate sdl2;
-extern crate hecs;
-extern crate rand;
-extern crate serde_json;
-
 mod game;
 mod debug;
 mod types;
