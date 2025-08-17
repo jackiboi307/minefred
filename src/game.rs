@@ -93,14 +93,25 @@ impl<'a> Game<'a> {
         load_textures(&texture_creator, &mut self.textures)
     }
 
+    fn get_gameobjtype(&self, id: EntityId) -> &GameObjectType {
+        let type_id = self.ecs.get::<&GameObjectTypeComponent>(id).unwrap();
+        self.types.from_id(type_id.id)
+    }
+
     pub fn render(&self, canvas: &mut Canvas) -> Result<(), Error> {
         let timer = debug::Timer::new("rendering");
         for id in &self.loaded.ids {
             let rect = if let Ok(rect) = self.get_sdl_rect(*id) {
                 rect } else { continue };
 
-            if let Ok(texture) = self.ecs.get::<&Texture>(*id) {
-                copy_texture(canvas, &self.textures, &texture, rect)?;
+            if let Some(texture_id) = self.get_gameobjtype(*id).texture {
+                copy_texture(
+                    canvas,
+                    &self.textures,
+                    texture_id,
+                    self.ecs.get::<&TextureTransform>(*id).ok().as_deref(),
+                    rect
+                )?;
             }
         }
         timer.done();

@@ -5,10 +5,13 @@ fn init<'a>(entity: &'a mut EntityBuilder) -> Result<&'a mut EntityBuilder, Erro
     entity
         .add(Player::new())
         .add(Position::free(0.0, 0.0))
-        .add(Texture::new("player"))
     ;
 
     Ok(entity)
 }
 
-pub const TYPE: GameObjectType = *GameObjectType::new("player").init(init);
+pub const TYPE: GameObjectTypeBuilder = 
+    *GameObjectTypeBuilder::new("player")
+    .init(init)
+    .texture("player")
+;

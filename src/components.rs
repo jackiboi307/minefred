@@ -1,10 +1,10 @@
 mod position;
 pub use position::*;
 
-mod functions;
-pub use functions::*;
+mod types;
+pub use types::*;
 
 mod player;
 pub use player::*;
 
-pub use crate::textures::TextureComponent as Texture;
+pub use crate::textures::TextureTransform;

@@ -12,6 +12,15 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 
+macro_rules! setter {
+    ($name:ident, $type:ty) => {
+        pub const fn $name(mut self, value: $type) -> Self {
+            self.$name = value;
+            self
+        }
+    };
+}
+
 enum Direction {
     Twelve,
     Three,
@@ -30,27 +39,20 @@ impl Direction {
     }
 }
 
-pub struct TextureComponent{
-    id: String,
+pub struct TextureTransform{
     direction: Direction,
-    // valid: bool,
     scale: f32,
 }
 
-impl TextureComponent {
-    pub fn new(id: &'static str) -> Self {
+impl TextureTransform {
+    pub fn new() -> Self {
         Self{
-            id: id.to_string(),
             direction: Direction::Twelve,
-            // valid: textures.get(id).is_some(),
-            // valid: true,
             scale: 1.0,
         }
     }
 
     pub fn random_direction(mut self) -> Self {
-        // if !self.valid { return self }
-
         self.direction =
             match random::int(0..=3) {
                 0 => Direction::Twelve,
@@ -62,11 +64,12 @@ impl TextureComponent {
         self
     }
 
-    pub fn set_scale(mut self, scale: f32) -> Self {
-        // if !self.valid { return self }
-        self.scale = scale;
-        self
-    }
+    // pub fn set_scale(mut self, scale: f32) -> Self {
+    //     self.scale = scale;
+    //     self
+    // }
+
+    setter!(scale, f32);
 }
 
 pub type Textures<'a> = HashMap<String, SDLTexture<'a>>;
@@ -118,26 +121,39 @@ pub fn load_textures
 pub fn copy_texture(
         canvas: &mut Canvas,
         textures: &Textures,
-        texture_component: &TextureComponent,
+        id: &'static str,
+        transform: Option<&TextureTransform>,
         rect: rect::Rect) -> Result<(), Error> {
 
     let texture = 
-        &textures.get(&texture_component.id)
+        &textures.get(id)
         .unwrap_or_else(|| {
             textures.get("error").expect("Could not get texture 'error'")
         });
+
+    let (scale, degrees) = if let Some(transform) = transform {
+        (
+            transform.scale,
+            transform.direction.degrees(),
+        )
+    } else {
+        (
+            1.0,
+            0.0,
+        )
+    };
     
     let rect = rect::Rect::from_center(
         rect.center(),
-        (rect.width() as f32 * texture_component.scale) as u32,
-        (rect.height() as f32 * texture_component.scale) as u32
+        (rect.width() as f32 * scale) as u32,
+        (rect.height() as f32 * scale) as u32
     );
 
     canvas.copy_ex(
         &texture,
         None,
         Some(rect),
-        texture_component.direction.degrees(),
+        degrees,
         None,
         false,
         false,
