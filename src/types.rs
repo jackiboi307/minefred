@@ -6,14 +6,3 @@ pub type SizeType = u16;
 pub type ChunkPosType = i32;
 pub type GameObjectTypeId = u8;
 pub type UpdateFnIdType = GameObjectTypeId;
-
-#[derive(Clone, Copy)]
-pub struct Rect {
-    pub width:  SizeType,
-    pub height: SizeType,
-}
-
-impl Rect {
-    pub fn new(width: SizeType, height: SizeType) -> Self {
-        Self{width, height} }}
-

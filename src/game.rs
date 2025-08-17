@@ -10,7 +10,10 @@ use crate::debug;
 use sdl2::render::TextureCreator;
 use sdl2::pixels::Color;
 use sdl2::video::WindowContext;
-use sdl2::event::Event;
+use sdl2::event::{
+    Event,
+    WindowEvent,
+};
 use sdl2::EventPump;
 use sdl2::rect;
 
@@ -52,7 +55,7 @@ pub struct Game<'a> {
     chunks: Vec<ChunkPos>,
     player_chunk: ChunkPos,
     tile_scale: u32,
-    screen: Rect,
+    screen_size: (i32, i32),
     action_handler: ActionHandler,
 }
 
@@ -68,7 +71,7 @@ impl<'a> Game<'a> {
             chunks: Vec::new(),
             player_chunk: ChunkPos::new(0, 0),
             tile_scale: 40,
-            screen: Rect::new(SCREEN_X.into(), SCREEN_Y.into()),
+            screen_size: (SCREEN_X.into(), SCREEN_Y.into()),
             action_handler: ActionHandler::new(),
         };
 
@@ -160,6 +163,14 @@ impl<'a> Game<'a> {
                 },
                 Event::MouseButtonUp { mouse_btn, .. } => {
                     updates.register_event(&self.action_handler, mouse_btn, false);
+                },
+                Event::Window { win_event, .. } => {
+                    match win_event {
+                        WindowEvent::Resized(width, height) => {
+                            self.screen_size = (width, height);
+                        },
+                        _ => {}
+                    }
                 },
                 _ => {}
             }
@@ -255,19 +266,19 @@ impl<'a> Game<'a> {
         let rect = if pos.is_free() {
             rect::Rect::new(
                 ((pos.x() as f32 - player.x()) * self.tile_scale as f32) as i32
-                    + self.screen.width as i32 / 2,
+                    + self.screen_size.0 as i32 / 2,
                 ((pos.y() as f32 - player.y()) * self.tile_scale as f32) as i32
-                    + self.screen.height as i32 / 2,
+                    + self.screen_size.1 as i32 / 2,
                 self.tile_scale,
                 self.tile_scale,
             )
 
         } else {
             rect::Rect::new(
-                self.screen.width as i32 / 2
+                self.screen_size.0 as i32 / 2
                     + (pos.x() * self.tile_scale as PosType) as i32
                     - (player.x() * self.tile_scale as f32) as i32,
-                self.screen.height as i32 / 2
+                self.screen_size.1 as i32 / 2
                     + (pos.y() * self.tile_scale as PosType) as i32
                     - (player.y() * self.tile_scale as f32) as i32,
                 self.tile_scale,

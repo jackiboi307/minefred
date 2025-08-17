@@ -29,6 +29,7 @@ fn run() -> Result<(), Error> {
     let window = video_subsystem
         .window("Minefred", SCREEN_X.into(), SCREEN_Y.into())
         .position_centered()
+        .resizable()
         .build()?;
 
     let mut canvas = window.into_canvas().build()?;
