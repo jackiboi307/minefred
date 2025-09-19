@@ -1,11 +1,11 @@
 use crate::gameobjtype::base::*;
-use crate::types::*;
 use crate::gameobjtype::types::TYPES;
 
 use std::collections::HashMap;
 
 macro_rules! setter {
     ($name:ident, $type:ty) => {
+        #[allow(dead_code)]
         pub const fn $name(&mut self, value: $type) -> &mut Self {
             self.$name = Some(value);
             self
@@ -14,20 +14,19 @@ macro_rules! setter {
 }
 
 type InitFnType = fn(
-    entity: &mut EntityBuilder) -> Result<&mut EntityBuilder, Error>;
+    entity: &mut EntityBuilder) -> Result<&mut EntityBuilder>;
 
 pub type UpdateFnType = fn(
     ecs: &mut ECSWorld,
     ecs_id: ECSEntityId,
-    update_data: &UpdateData) -> Result<(), Error>;
+    update_data: &UpdateData) -> Result<()>;
 
 // type RenderFnType = fn(
 //     ecs: &ECSWorld,
 //     ecs_id: ECSEntityId,
 //     render_info: &RenderInfo,
 //     textures: &Textures,
-//     canvas: &mut Canvas) -> Result<(), Error>;
-//
+//     canvas: &mut Canvas) -> Result<()>;
 
 pub struct UpdateData {
     // pub events: EventState,
@@ -40,6 +39,7 @@ pub struct GameObjectTypeBuilder {
     pub init: Option<InitFnType>,
     pub update: Option<UpdateFnType>,
     pub texture: Option<&'static str>,
+    pub class: Option<GameObjectClass>,
 }
 
 impl GameObjectTypeBuilder {
@@ -49,23 +49,44 @@ impl GameObjectTypeBuilder {
             init: None,
             update: None,
             texture: None,
+            class: None,
         }
     }
 
     setter!(init, InitFnType);
     setter!(update, UpdateFnType);
     setter!(texture, &'static str);
+    setter!(class, GameObjectClass);
+}
+
+#[derive(Copy, Clone)]
+pub enum GameObjectClass {
+    Block {},
+    Item {},
+    Entity {},
+}
+
+impl GameObjectClass {
+    pub const fn block() -> Self {
+        Self::Block {}}
+
+    pub const fn item() -> Self {
+        Self::Item {}}
+
+    pub const fn entity() -> Self {
+        Self::Entity {}}
 }
 
 pub struct GameObjectType {
     pub update_fn_id: Option<UpdateFnIdType>,
     pub texture: Option<&'static str>,
+    pub class: GameObjectClass,
 }
 
 pub struct GameObjectTypes {
-    types: Box<[GameObjectType]>, // indexed by GameObjectTypeId
+    types: Box<[GameObjectType]>,        // indexed by GameObjectTypeId
     init_fns: Box<[Option<InitFnType>]>, // indexed by GameObjectTypeId
-    update_fns: Box<[UpdateFnType]>, // indexed by UpdateFnIdType
+    update_fns: Box<[UpdateFnType]>,     // indexed by UpdateFnIdType
     key_id_map: HashMap<&'static str, GameObjectTypeId>,
 }
 
@@ -77,6 +98,13 @@ impl GameObjectTypes {
         let mut key_id_map = HashMap::new();
 
         for builder in TYPES {
+            let class = if let Some(class) = builder.class {
+                class
+            } else {
+                println!("no class found for type '{}', skipping", builder.key);
+                continue
+            };
+
             let id = TryInto::<GameObjectTypeId>::try_into(types.len()).expect(
                 "too many game objects for id type");
             key_id_map.insert(builder.key, id);
@@ -101,6 +129,7 @@ impl GameObjectTypes {
             let gameobjtype = GameObjectType {
                 update_fn_id,
                 texture: builder.texture,
+                class,
             };
 
             types.push(gameobjtype);
@@ -125,7 +154,7 @@ impl GameObjectTypes {
 
     pub fn init_entity
             <'a>(&self, entity_builder: &'a mut EntityBuilder, key: &'static str)
-            -> Result<(), Error> {
+            -> Result<()> {
 
         let id = self.get_id(key);
 

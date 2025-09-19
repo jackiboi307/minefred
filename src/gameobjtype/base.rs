@@ -1,8 +1,8 @@
 // Almost everything required to define new behaviors.
 
+pub use crate::prelude::*;
 pub use crate::gameobjtype::*;
 pub use crate::components::*;
-pub use crate::types::Error;
 
 pub use hecs::World as ECSWorld;
 pub use hecs::Entity as ECSEntityId;

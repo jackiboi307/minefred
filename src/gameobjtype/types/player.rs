@@ -1,7 +1,6 @@
 use crate::gameobjtype::base::*;
-use crate::types::*;
 
-fn init<'a>(entity: &'a mut EntityBuilder) -> Result<&'a mut EntityBuilder, Error> {
+fn init<'a>(entity: &'a mut EntityBuilder) -> Result<&'a mut EntityBuilder> {
     entity
         .add(Player::new())
         .add(Position::free(0.0, 0.0))
@@ -12,6 +11,7 @@ fn init<'a>(entity: &'a mut EntityBuilder) -> Result<&'a mut EntityBuilder, Erro
 
 pub const TYPE: GameObjectTypeBuilder = 
     *GameObjectTypeBuilder::new("player")
+    .class(GameObjectClass::entity())
     .init(init)
     .texture("player")
 ;

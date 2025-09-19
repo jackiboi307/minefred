@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 const PRINT_DEBUG: bool = true;
-const PRINT_TIMER: bool = false && PRINT_DEBUG;
+const PRINT_TIMER: bool = false;
 const DO_NOT_PRINT_0_MS: bool = true;
 pub const PRINT_LAG: bool = false;
 
@@ -22,11 +22,15 @@ impl Timer {
         self.start.elapsed().as_millis()
     }
 
-    pub fn done(&self) -> u128 {
+    pub fn done_cond(&self, cond: bool) -> u128 {
         let elapsed = self.elapsed();
-        if PRINT_TIMER && !(DO_NOT_PRINT_0_MS && elapsed == 0) {
+        if cond && !(DO_NOT_PRINT_0_MS && elapsed == 0) {
             println!("timer: {} ms: {}", elapsed, self.label);
         }
         elapsed
+    }
+
+    pub fn done(&self) -> u128 {
+        self.done_cond(PRINT_DEBUG && PRINT_TIMER)
     }
 }

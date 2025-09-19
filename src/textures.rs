@@ -1,5 +1,5 @@
+use crate::prelude::*;
 use crate::random;
-use crate::types::*;
 use crate::debug;
 
 use sdl2::render::{TextureCreator, BlendMode};
@@ -78,7 +78,7 @@ pub fn load_textures
         <'a>(
             texture_creator: &'a TextureCreator<WindowContext>,
             textures: &mut Textures<'a>
-        ) -> Result<(), Error> {
+        ) -> Result<()> {
 
     let timer = debug::Timer::new("loading textures");
 
@@ -108,7 +108,7 @@ pub fn load_textures
                     buffer[offset + 3] = color.3;
                 }
             }
-        })?;
+        }).map_err(conv_err!())?;
 
         textures.insert(id, texture);
     }
@@ -123,7 +123,7 @@ pub fn copy_texture(
         textures: &Textures,
         id: &'static str,
         transform: Option<&TextureTransform>,
-        rect: rect::Rect) -> Result<(), Error> {
+        rect: rect::Rect) -> Result<()> {
 
     let texture = 
         &textures.get(id)
@@ -157,7 +157,7 @@ pub fn copy_texture(
         None,
         false,
         false,
-    )?;
+    ).map_err(conv_err!())?;
 
     Ok(())
 }

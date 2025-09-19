@@ -3,14 +3,14 @@
 
 use crate::gameobjtype::GameObjectTypeBuilder;
 
-pub mod test;
-pub mod test_tile;
-pub mod player;
 pub mod tree;
+pub mod player;
+pub mod test_tile;
+pub mod test;
 
 pub const TYPES: [GameObjectTypeBuilder; 4] = [
-    test::TYPE,
-    test_tile::TYPE,
-    player::TYPE,
     tree::TYPE,
+    player::TYPE,
+    test_tile::TYPE,
+    test::TYPE,
 ];
