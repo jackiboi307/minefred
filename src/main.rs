@@ -42,7 +42,7 @@ fn run() -> Result<()> {
     let mut game = Game::new();
     game.init_textures(&texture_creator).context("loading textures")?;
     game.init_fonts(&ttf_context, &texture_creator).context("loading fonts")?;
-    game.init().expect("init failed");
+    game.init().context("initializing")?;
 
     'main: loop {
         let timer = debug::Timer::new("WHOLE FRAME");
@@ -55,7 +55,6 @@ fn run() -> Result<()> {
         canvas.clear();
 
         game.render(&mut canvas).context("rendering")?;
-        game.render_tui(&mut canvas).context("rendering tui")?;
 
         canvas.present();
 

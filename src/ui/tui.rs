@@ -35,12 +35,13 @@ macro_rules! tui_input {
 pub use crate::tui_input;
 
 pub struct Fg(pub u8, pub u8, pub u8);
-pub struct Bg(pub Option<(u8, u8, u8)>);
+pub struct Bg(pub u8, pub u8, pub u8);
+pub struct BgNone;
 
 pub enum RenderTextSegment {
     AddString(Box<str>),
     SetColorFg(Fg),
-    SetColorBg(Bg),
+    SetColorBg(Option<Bg>),
 }
 
 impl<T> From<T> for RenderTextSegment
@@ -58,7 +59,13 @@ impl From<Fg> for RenderTextSegment {
 
 impl From<Bg> for RenderTextSegment {
     fn from(bg: Bg) -> Self {
-        Self::SetColorBg(bg)
+        Self::SetColorBg(Some(bg))
+    }
+}
+
+impl From<BgNone> for RenderTextSegment {
+    fn from(_: BgNone) -> Self {
+        Self::SetColorBg(None)
     }
 }
 
@@ -138,6 +145,7 @@ impl<'a> RenderedFont<'a> {
         );
 
         let mut fg = Fg(255, 255, 255);
+        let mut bg: Option<Bg> = None;
         let mut x = 0;
         let mut y = 0;
 
@@ -145,14 +153,15 @@ impl<'a> RenderedFont<'a> {
             if let RenderTextSegment::SetColorFg(new_fg) = segment {
                 fg = new_fg;
 
+            } else if let RenderTextSegment::SetColorBg(new_bg) = segment {
+                bg = new_bg;
+
             } else if let RenderTextSegment::AddString(string) = segment {
                 for glyph in string.graphemes(true) {
                     let texture = self.glyph_textures.get_mut(glyph);
 
                     if let Some(mut texture) = texture {
                         if (x as u32) < size.0 {
-                            texture.set_color_mod(fg.0, fg.1, fg.2);
-
                             let rect = Rect::new(
                                 (pos.0 as i32 + x) * char_size.0 as i32,
                                 (pos.1 as i32 + y) * char_size.1 as i32,
@@ -160,6 +169,13 @@ impl<'a> RenderedFont<'a> {
                                 char_size.1
                             );
 
+                            if let Some(ref bg) = bg {
+                                canvas.set_draw_color((bg.0, bg.1, bg.2));
+                                canvas.fill_rect(rect)
+                                    .map_err(conv_err!())?;
+                            }
+
+                            texture.set_color_mod(fg.0, fg.1, fg.2);
                             canvas.copy(&texture, None, rect).map_err(conv_err!())?;
                         }
                     }
