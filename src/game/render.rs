@@ -46,8 +46,13 @@ impl<'a> Game<'a> {
     }
 
     pub fn render_tui(&mut self, canvas: &mut Canvas) -> Result<()> {
-        use crate::ui::tui::tui_input;
-        use crate::ui::tui::{Fg, Bg, BgNone};
+        #[allow(unused_imports)]
+        use crate::ui::tui::{
+            tui_input,
+            Fg,
+            Bg,
+            BgNone,
+        };
 
         let width = std::cmp::min(
             self.font.pixels_to_chars_x(self.screen_size.0 as u32 / 2),

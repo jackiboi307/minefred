@@ -5,25 +5,13 @@ mod update;
 use crate::prelude::*;
 use crate::gameobjtype::*;
 use crate::components::*;
-use crate::event::{ActionHandler, ActionUpdates};
+use crate::event::ActionHandler;
 use crate::constants::*;
 use crate::utils::*;
-use crate::textures::{Textures, load_textures, copy_texture};
+use crate::textures::Textures;
 use crate::ui::tui;
 
-use sdl2::render::{
-    TextureCreator,
-    // TextureQuery,
-};
-use sdl2::pixels::Color;
-use sdl2::video::WindowContext;
-use sdl2::event::{
-    Event,
-    WindowEvent,
-};
-use sdl2::EventPump;
 use sdl2::rect::Rect;
-use sdl2::ttf::Sdl2TtfContext;
 
 use hecs::World as ECSWorld;
 use hecs::Entity as EntityId;
@@ -33,7 +21,6 @@ use hecs::{
 };
 
 use std::collections::HashMap;
-use std::cmp::Ordering;
 
 struct Loaded {
     ids: Vec<EntityId>,
