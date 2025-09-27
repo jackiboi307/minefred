@@ -46,94 +46,23 @@ impl<'a> Game<'a> {
     }
 
     pub fn render_tui(&mut self, canvas: &mut Canvas) -> Result<()> {
-        #[allow(unused_imports)]
-        use crate::ui::tui::{
-        };
+        let size = (
+            std::cmp::min(self.font.px_to_ch_x(self.screen_size.0 as u32 / 2), 40),
+            std::cmp::min(self.font.px_to_ch_y(self.screen_size.1 as u32 / 2), 40)
+        );
 
-        let width = std::cmp::min(
-            self.font.pixels_to_chars_x(self.screen_size.0 as u32 / 2),
-            40);
-        let height = std::cmp::min(
-            self.font.pixels_to_chars_y(self.screen_size.1 as u32 / 2),
-            40);
+        let pos = (
+            (self.screen_size.0 as u32 / 2)
+                .saturating_sub(self.font.ch_to_px_x(size.0) / 2),
+            (self.screen_size.1 as u32 / 2)
+                .saturating_sub(self.font.ch_to_px_y(size.1) / 2)
+        );
 
-        let x = (self.font.pixels_to_chars_x(self.screen_size.0 as u32) / 2)
-            .saturating_sub(width / 2);
-        let y = (self.font.pixels_to_chars_y(self.screen_size.1 as u32) / 2)
-            .saturating_sub(height / 2);
+        let mut drawer = tui::TUIDrawer::new(pos, size);
+        drawer.fill_bg(canvas, &mut self.font, (0, 0, 0))?;
+        drawer.text_at(canvas, &mut self.font, 1, 1, "hej\nhur gåre")?;
+        drawer.text(canvas, &mut self.font, "jo tack")?;
 
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
-        canvas.fill_rect(Rect::new(
-            self.font.chars_to_pixels_x(x) as i32,
-            self.font.chars_to_pixels_y(y) as i32,
-            self.font.chars_to_pixels_x(width),
-            self.font.chars_to_pixels_y(height)
-        )).map_err(conv_err!())?;
-
-        if let Ok(inventory) = self.ecs.get::<&Inventory>(self.player) {
-            for (i, item) in inventory.items.iter().enumerate() {
-                if let Some(item) = item {
-                    self.font.render_text(canvas,
-                        (x, y + i as u32),
-                        (width, height),
-                        format!("{} ({})", item.key, item.amount),
-                        (255, 255, 255),
-                        None,
-                    )?;
-                }
-            }
-        }
-        
         Ok(())
-
-        /*
-        use tui::color::*;
-        use tui::{
-            Snippet,
-            TUICanvas,
-        };
-        
-        let mut tuicanvas = TUICanvas::new(20, 20, self.fonts.by_id(0).unwrap());
-        let layer = tuicanvas.create_layer();
-        layer.clear();
-        layer.add(Snippet::new("Inventory".into(), 0, 0));
-
-        let selected = 0;
-
-        if let Ok(inventory) = self.ecs.get::<&Inventory>(self.player) {
-            for (i, item) in inventory.items.iter().enumerate() {
-                if let Some(item) = item {
-                    layer.add(Snippet::new(
-                        format!("{} ({})", item.key, item.amount),
-                        i as u32 + 1, 4)
-                        .fg(if i == selected { BLACK } else { WHITE })
-                        .bg(if i == selected { WHITE } else { BLACK })
-                    );
-                }
-            }
-        }
-
-        let font_config = tui::FontConfig {
-            scale: 1.0,
-            y_scale: 0.9,
-            default_fg: WHITE.into(),
-        };
-
-        let x = (self.screen_size.0 - tuicanvas.width()  as i32) / 2;
-        let y = (self.screen_size.1 - tuicanvas.height() as i32) / 2;
-        tuicanvas.render(
-            canvas,
-            &self.fonts,
-            font_config,
-            (x, y),
-        ).context("rendering tui")?;
-        */
-
-        /*
-        let font = self.fonts.by_id(0).unwrap();
-        let example = tui::SnippetGroup::example();
-        let tuicanvas = tui::TUICanvas::new(example, font, (1.0, 1.0), tui::color::WHITE);
-        tuicanvas.render(canvas, (100, 100), font)?;
-        */
     }
 }
