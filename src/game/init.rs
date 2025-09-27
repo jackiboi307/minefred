@@ -11,7 +11,7 @@ use sdl2::render::TextureCreator;
 impl<'a> Game<'a> {
     pub fn init(&mut self) -> Result<()> {
         self.player = self.spawn("player", ({
-            let mut inventory = Inventory::new(100);
+            let mut inventory = Inventory::new(10);
             inventory.try_receive("test", 1);
             inventory.try_receive("error", 5);
             inventory

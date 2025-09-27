@@ -21,54 +21,6 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \
 åäö";
 
-#[macro_export]
-macro_rules! tui_input {
-    ( $( $e:expr ),* $(,)? ) => {{
-        let mut vec = Vec::<crate::ui::tui::RenderTextSegment>::new();
-        $(
-            vec.push($e.into());
-        )*
-        vec
-    }};
-}
-
-pub use crate::tui_input;
-
-pub struct Fg(pub u8, pub u8, pub u8);
-pub struct Bg(pub u8, pub u8, pub u8);
-pub struct BgNone;
-
-pub enum RenderTextSegment {
-    AddString(Box<str>),
-    SetColorFg(Fg),
-    SetColorBg(Option<Bg>),
-}
-
-impl<T> From<T> for RenderTextSegment
-where T: Into<Box<str>> {
-    fn from(string: T) -> Self {
-        Self::AddString(string.into())
-    }
-}
-
-impl From<Fg> for RenderTextSegment {
-    fn from(fg: Fg) -> Self {
-        Self::SetColorFg(fg)
-    }
-}
-
-impl From<Bg> for RenderTextSegment {
-    fn from(bg: Bg) -> Self {
-        Self::SetColorBg(Some(bg))
-    }
-}
-
-impl From<BgNone> for RenderTextSegment {
-    fn from(_: BgNone) -> Self {
-        Self::SetColorBg(None)
-    }
-}
-
 pub struct RenderedFont<'a> {
     glyph_textures: HashMap<&'a str, Texture<'a>>,
     char_size: (u32, u32),
@@ -136,61 +88,36 @@ impl<'a> RenderedFont<'a> {
             canvas: &mut Canvas,
             pos: (u32, u32),
             size: (u32, u32),
-            font_scale: (f32, f32),
-            input: Vec<RenderTextSegment>) -> Result<()> {
+            text: String,
+            fg: (u8, u8, u8),
+            bg: Option<(u8, u8, u8)>) -> Result<()> {
 
-        let char_size = (
-            (self.char_size.0 as f32 * font_scale.0) as u32,
-            (self.char_size.1 as f32 * font_scale.0 * font_scale.1) as u32
-        );
-
-        let mut fg = Fg(255, 255, 255);
-        let mut bg: Option<Bg> = None;
         let mut x = 0;
-        let mut y = 0;
 
-        for segment in input {
-            if let RenderTextSegment::SetColorFg(new_fg) = segment {
-                fg = new_fg;
+        for glyph in text.graphemes(true) {
+            let texture = self.glyph_textures.get_mut(glyph);
 
-            } else if let RenderTextSegment::SetColorBg(new_bg) = segment {
-                bg = new_bg;
+            if let Some(mut texture) = texture {
+                if (x as u32) < size.0 {
+                    let rect = Rect::new(
+                        (pos.0 as i32 + x) * self.char_size.0 as i32,
+                        (pos.1 * self.char_size.1) as i32,
+                        self.char_size.0,
+                        self.char_size.1
+                    );
 
-            } else if let RenderTextSegment::AddString(string) = segment {
-                for glyph in string.graphemes(true) {
-                    let texture = self.glyph_textures.get_mut(glyph);
-
-                    if let Some(mut texture) = texture {
-                        if (x as u32) < size.0 {
-                            let rect = Rect::new(
-                                (pos.0 as i32 + x) * char_size.0 as i32,
-                                (pos.1 as i32 + y) * char_size.1 as i32,
-                                char_size.0,
-                                char_size.1
-                            );
-
-                            if let Some(ref bg) = bg {
-                                canvas.set_draw_color((bg.0, bg.1, bg.2));
-                                canvas.fill_rect(rect)
-                                    .map_err(conv_err!())?;
-                            }
-
-                            texture.set_color_mod(fg.0, fg.1, fg.2);
-                            canvas.copy(&texture, None, rect).map_err(conv_err!())?;
-                        }
+                    if let Some(bg) = bg {
+                        canvas.set_draw_color((bg.0, bg.1, bg.2));
+                        canvas.fill_rect(rect)
+                            .map_err(conv_err!())?;
                     }
 
-                    if glyph != "\n" {
-                        x += 1;
-                    } else {
-                        x = 0;
-                        y += 1;
-                        if y as u32 == size.1 {
-                            return Ok(())
-                        }
-                    }
+                    texture.set_color_mod(fg.0, fg.1, fg.2);
+                    canvas.copy(&texture, None, rect).map_err(conv_err!())?;
                 }
             }
+
+            x += 1;
         }
 
         Ok(())

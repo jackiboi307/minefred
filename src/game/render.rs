@@ -48,10 +48,6 @@ impl<'a> Game<'a> {
     pub fn render_tui(&mut self, canvas: &mut Canvas) -> Result<()> {
         #[allow(unused_imports)]
         use crate::ui::tui::{
-            tui_input,
-            Fg,
-            Bg,
-            BgNone,
         };
 
         let width = std::cmp::min(
@@ -74,20 +70,20 @@ impl<'a> Game<'a> {
             self.font.chars_to_pixels_y(height)
         )).map_err(conv_err!())?;
 
-        let mut input = Vec::new();
-
         if let Ok(inventory) = self.ecs.get::<&Inventory>(self.player) {
             for (i, item) in inventory.items.iter().enumerate() {
-                input.push(format!("{}: ", i).into());
                 if let Some(item) = item {
-                    input.push(format!("{} ({})", item.key, item.amount).into());
+                    self.font.render_text(canvas,
+                        (x, y + i as u32),
+                        (width, height),
+                        format!("{} ({})", item.key, item.amount),
+                        (255, 255, 255),
+                        None,
+                    )?;
                 }
-                input.push("\n".into());
             }
         }
-
-        self.font.render_text(canvas, (x, y), (width, height), (1.0, 1.0), input)?;
-
+        
         Ok(())
 
         /*
