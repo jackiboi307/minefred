@@ -46,22 +46,22 @@ impl<'a> Game<'a> {
     }
 
     pub fn render_tui(&mut self, canvas: &mut Canvas) -> Result<()> {
-        let size = (
-            std::cmp::min(self.font.px_to_ch_x(self.screen_size.0 as u32 / 2), 40),
-            std::cmp::min(self.font.px_to_ch_y(self.screen_size.1 as u32 / 2), 40)
-        );
-
-        let pos = (
-            (self.screen_size.0 as u32 / 2)
-                .saturating_sub(self.font.ch_to_px_x(size.0) / 2),
-            (self.screen_size.1 as u32 / 2)
-                .saturating_sub(self.font.ch_to_px_y(size.1) / 2)
-        );
-
-        let mut drawer = tui::TUIDrawer::new(pos, size);
-        drawer.fill_bg(canvas, &mut self.font, (0, 0, 0))?;
-        drawer.text_at(canvas, &mut self.font, 1, 1, "hej\nhur gåre")?;
-        drawer.text(canvas, &mut self.font, "jo tack")?;
+        // let size = (
+        //     std::cmp::min(self.font.px_to_ch_x(self.screen_size.0 as u32 / 2), 40),
+        //     std::cmp::min(self.font.px_to_ch_y(self.screen_size.1 as u32 / 2), 40)
+        // );
+        //
+        // let pos = (
+        //     (self.screen_size.0 as u32 / 2)
+        //         .saturating_sub(self.font.ch_to_px_x(size.0) / 2),
+        //     (self.screen_size.1 as u32 / 2)
+        //         .saturating_sub(self.font.ch_to_px_y(size.1) / 2)
+        // );
+        //
+        // let mut drawer = tui::TUIDrawer::new(pos, size);
+        // drawer.fill_bg(canvas, &mut self.font, (0, 0, 0))?;
+        // drawer.text_at(canvas, &mut self.font, 1, 1, "hej\nhur gåre")?;
+        // drawer.text(canvas, &mut self.font, "jo tack")?;
 
         Ok(())
     }
