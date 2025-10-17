@@ -10,8 +10,8 @@ pub struct KeyedSliceBuilder<T> {
 }
 
 pub struct KeyedSlice<T> {
-    arr: Box<[T]>,
-    key_index_map: HashMap<&'static str, usize>,
+    pub arr: Box<[T]>,
+    pub key_index_map: HashMap<&'static str, usize>,
 }
 
 impl<T> KeyedSliceBuilder<T> {

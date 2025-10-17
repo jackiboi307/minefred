@@ -22,7 +22,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 åäö";
 
 pub struct RenderedFont<'a> {
-    char_textures: HashMap<&'a str, Texture<'a>>,
+    char_textures: HashMap<Box<str>, Texture<'a>>,
     char_size: (u32, u32),
 }
 
@@ -58,7 +58,7 @@ impl<'a> RenderedFont<'a> {
                 .create_texture_from_surface(&surface)
                 .map_err(conv_err!())?;
 
-            char_textures.insert(glyph, texture);
+            char_textures.insert(glyph.into(), texture);
         }
 
         Ok(Self {
@@ -86,12 +86,12 @@ impl<'a> RenderedFont<'a> {
     fn draw_char(
             &mut self,
             canvas: &mut Canvas,
-            pos: (u32, u32),
-            ch: &'a str,
+            pos: (i32, i32),
+            ch: Box<str>,
             fg: (u8, u8, u8),
             bg: Option<(u8, u8, u8)>) -> Result<()> {
 
-        let texture = self.char_textures.get_mut(ch);
+        let texture = self.char_textures.get_mut(&ch);
 
         if let Some(mut texture) = texture {
             let rect = Rect::new(
@@ -116,27 +116,24 @@ impl<'a> RenderedFont<'a> {
 }
 
 pub struct TUIDrawer {
-    start_x: u32,
-    start_y: u32,
-    x: u32,
-    y: u32,
+    start_x: i32,
+    start_y: i32,
+    x: i32,
+    y: i32,
     width: u32,
     height: u32,
     fg: (u8, u8, u8),
 }
 
 impl TUIDrawer {
-    pub fn new(
-            pos: (u32, u32), 
-            size: (u32, u32)) -> Self {
-        
+    pub fn new(rect: Rect) -> Self {
         Self {
-            start_x: pos.0,
-            start_y: pos.1,
-            width: size.0,
-            height: size.1,
+            start_x: rect.x(),
+            start_y: rect.y(),
+            width: rect.width(),
+            height: rect.height(),
             x: 0,
-            y: 1,
+            y: 0,
             fg: (255, 255, 255),
         }
     }
@@ -151,8 +148,8 @@ impl TUIDrawer {
             Rect::new(
                 self.start_x as i32,
                 self.start_y as i32,
-                self.width  * font.char_size.0,
-                self.height * font.char_size.1
+                font.px_to_ch_x(self.width)  * font.char_size.0,
+                font.px_to_ch_y(self.height) * font.char_size.1
             )
         ).map_err(conv_err!())?;
 
@@ -162,9 +159,9 @@ impl TUIDrawer {
     pub fn text_at<'a>(&mut self,
             canvas: &mut Canvas,
             font: &mut RenderedFont<'a>,
-            x: u32,
-            y: u32,
-            text: &'a str) -> Result<()> {
+            x: i32,
+            y: i32,
+            text: Box<str>) -> Result<()> {
 
         self.x = x;
         self.y = y;
@@ -173,10 +170,10 @@ impl TUIDrawer {
             font.draw_char(
                 canvas,
                 (
-                    self.start_x + self.x * font.char_size.0,
-                    self.start_y + self.y * font.char_size.1
+                    self.start_x + self.x * font.char_size.0 as i32,
+                    self.start_y + self.y * font.char_size.1 as i32
                 ),
-                ch,
+                ch.into(),
                 self.fg,
                 None
             )?;
@@ -195,7 +192,7 @@ impl TUIDrawer {
     pub fn text<'a>(&mut self,
             canvas: &mut Canvas,
             font: &mut RenderedFont<'a>,
-            text: &'a str) -> Result<()> {
+            text: Box<str>) -> Result<()> {
 
         self.text_at(canvas, font, self.x, self.y, text)
     }

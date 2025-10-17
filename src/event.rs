@@ -99,6 +99,11 @@ impl ActionUpdates {
             }
         }
     }
+
+    pub fn clear(&mut self) {
+        self.add.clear();
+        self.remove.clear();
+    }
 }
 
 pub struct ActionHandler {
@@ -135,7 +140,7 @@ impl ActionHandler {
     }
 }
 
-const DEFAULT_BINDS: [(Button, Action); 6] = [
+const DEFAULT_BINDS: [(Button, Action); 7] = [
     (Button::Key(Scancode::W), Action {
         label: "Move up",
         key: "move_up",
@@ -166,4 +171,9 @@ const DEFAULT_BINDS: [(Button, Action); 6] = [
         key: "attack",
         prolonged: false,
         local: false, }),
+    (Button::Key(Scancode::E), Action {
+        label: "Toggle inventory",
+        key: "toggle_inventory",
+        prolonged: false,
+        local: true, }),
 ];

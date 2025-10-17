@@ -1,7 +1,5 @@
 use crate::types::*;
 
-pub const SCREEN_X: SizeType = 800;
-pub const SCREEN_Y: SizeType = 600;
 pub const FPS: u64 = 60;
 pub const RESIZABLE: bool = true;
 

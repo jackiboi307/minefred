@@ -40,29 +40,29 @@ impl<'a> Game<'a> {
             }
         }
 
-        self.render_tui(canvas).context("rendering tui")?;
+        self.render_ui(canvas).context("rendering ui")?;
 
         Ok(())
     }
 
-    pub fn render_tui(&mut self, canvas: &mut Canvas) -> Result<()> {
-        // let size = (
-        //     std::cmp::min(self.font.px_to_ch_x(self.screen_size.0 as u32 / 2), 40),
-        //     std::cmp::min(self.font.px_to_ch_y(self.screen_size.1 as u32 / 2), 40)
-        // );
-        //
-        // let pos = (
-        //     (self.screen_size.0 as u32 / 2)
-        //         .saturating_sub(self.font.ch_to_px_x(size.0) / 2),
-        //     (self.screen_size.1 as u32 / 2)
-        //         .saturating_sub(self.font.ch_to_px_y(size.1) / 2)
-        // );
-        //
-        // let mut drawer = tui::TUIDrawer::new(pos, size);
-        // drawer.fill_bg(canvas, &mut self.font, (0, 0, 0))?;
-        // drawer.text_at(canvas, &mut self.font, 1, 1, "hej\nhur gåre")?;
-        // drawer.text(canvas, &mut self.font, "jo tack")?;
+    pub fn render_ui(&mut self, canvas: &mut Canvas) -> Result<()> {
+        use crate::ui::*;
 
+        if let Some(inventory) = self.ui_handler.get("inventory") {
+            if inventory.visible {
+                let mut drawer = tui::TUIDrawer::new(inventory.to_rect(self.screen_size));
+                drawer.fill_bg(canvas, &mut self.font, (0, 0, 0))?;
+                if let Ok(inventory) = self.ecs.get::<&Inventory>(self.player) {
+                    for (i, item) in inventory.items.iter().enumerate() {
+                        if let Some(item) = item {
+                            let text = format!("{}: {} ({})\n", i, item.key, item.amount);
+                            drawer.text(canvas, &mut self.font, text.into())?;
+                        }
+                    }
+                }
+            }
+        }
+        
         Ok(())
     }
 }

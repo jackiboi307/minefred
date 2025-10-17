@@ -3,13 +3,13 @@ use crate::constants::CHUNK_SIZE;
 
 #[derive(Clone)]
 pub enum Position {
-    Free{
+    Free {
         x: PosType,
         y: PosType,
         top: bool,
     },
 
-    Tile{
+    Tile {
         chunk: ChunkPos,
         col: u8,
         row: u8,
@@ -25,7 +25,7 @@ pub struct ChunkPos {
 
 impl Position {
     pub fn free(x: PosType, y: PosType) -> Self {
-        Self::Free{
+        Self::Free {
             x,
             y,
             top: false,
@@ -33,7 +33,7 @@ impl Position {
     }
 
     pub fn tile(chunk: ChunkPos, col: u8, row: u8) -> Self {
-        Self::Tile{
+        Self::Tile {
             chunk,
             col,
             row,
@@ -43,48 +43,48 @@ impl Position {
 
     pub fn top(&mut self) -> &mut Self {
         match self {
-            Self::Free{ top, .. } => { *top = true; },
-            Self::Tile{ top, .. } => { *top = true; },
+            Self::Free { top, .. } => { *top = true; },
+            Self::Tile { top, .. } => { *top = true; },
         };
         self
     }
 
     pub fn move_x(&mut self, amount: PosType) { 
         match self {
-            Self::Free{ x, .. } => { *x += amount; },
-            Self::Tile{ .. } => {},
+            Self::Free { x, .. } => { *x += amount; },
+            Self::Tile { .. } => {},
         }
     }
 
     pub fn move_y(&mut self, amount: PosType) { 
         match self {
-            Self::Free{ y, .. } => { *y += amount; },
-            Self::Tile{ .. } => {},
+            Self::Free { y, .. } => { *y += amount; },
+            Self::Tile { .. } => {},
         }
     }
 
     pub fn x(&self) -> PosType {
         match &self {
-            Self::Free{ x, .. } => *x,
-            Self::Tile{ chunk, col, .. } =>
+            Self::Free { x, .. } => *x,
+            Self::Tile { chunk, col, .. } =>
                 chunk.x as PosType * CHUNK_SIZE as PosType + *col as PosType 
         }
     }
 
     pub fn y(&self) -> PosType {
         match &self {
-            Self::Free{ y, .. } => *y,
-            Self::Tile{ chunk, row, .. } =>
+            Self::Free { y, .. } => *y,
+            Self::Tile { chunk, row, .. } =>
                 chunk.y as PosType * CHUNK_SIZE as PosType + *row as PosType 
         }
     }
 
     pub fn chunk(&self) -> ChunkPos {
         match &self {
-            Self::Free{ x, y, .. } => ChunkPos::new(
+            Self::Free { x, y, .. } => ChunkPos::new(
                 (x / CHUNK_SIZE as PosType).floor() as ChunkPosType,
                 (y / CHUNK_SIZE as PosType).floor() as ChunkPosType),
-            Self::Tile{ chunk, .. } => chunk.clone()
+            Self::Tile { chunk, .. } => chunk.clone()
         }
     }
 
@@ -103,7 +103,7 @@ impl Position {
 
     pub fn is_free(&self) -> bool {
         match &self {
-            Self::Free{ .. } => true,
+            Self::Free { .. } => true,
             _ => false
         }
     }
@@ -111,7 +111,7 @@ impl Position {
     #[allow(dead_code)]
     pub fn is_tile(&self) -> bool {
         match &self {
-            Self::Tile{ .. } => true,
+            Self::Tile { .. } => true,
             _ => false
         }
     }

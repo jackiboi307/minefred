@@ -8,6 +8,8 @@ use sdl2::video::WindowContext;
 use sdl2::ttf::Sdl2TtfContext;
 use sdl2::render::TextureCreator;
 
+use std::collections::HashMap;
+
 impl<'a> Game<'a> {
     pub fn init(&mut self) -> Result<()> {
         self.player = self.spawn("player", ({
@@ -24,7 +26,14 @@ impl<'a> Game<'a> {
         self.spawn("tree", (Position::tile(chunk.clone(), 2, 1),))?;
         self.spawn("test", ())?;
         self.update_loaded(true)?;
+
+        self.init_ui();
+
         Ok(())
+    }
+
+    pub fn init_ui(&mut self) {
+        self.ui_handler.add("inventory");
     }
 
     pub fn init_textures

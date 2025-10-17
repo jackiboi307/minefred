@@ -24,7 +24,7 @@ fn run() -> Result<()> {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let mut window = video_subsystem.window("Minefred", SCREEN_X.into(), SCREEN_Y.into());
+    let mut window = video_subsystem.window("Minefred", 500, 500);
     let window = window
         .position_centered();
 

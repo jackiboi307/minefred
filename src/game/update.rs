@@ -53,6 +53,8 @@ impl<'a> Game<'a> {
                     match win_event {
                         WindowEvent::Resized(width, height) => {
                             self.screen_size = (width, height);
+                            updates.clear();
+                            break
                         },
                         _ => {}
                     }
@@ -69,25 +71,8 @@ impl<'a> Game<'a> {
 
         self.update_loaded(false)?;
 
-        self.update_player()?;
-
-        if let Ok(mut player) = self.ecs.get::<&mut Player>(self.player) {
-            player.selected = 'block: {
-                let mouse = event_pump.mouse_state();
-
-                for i in (0..self.loaded.ids.len()).rev() {
-                    let id = self.loaded.ids[i];
-                    if id == self.player { continue }
-                    if let Ok(rect) = self.get_sdl_rect(id) {
-                        if rect.contains_point((mouse.x(), mouse.y())) {
-                            break 'block Some(id);
-                        }
-                    }
-                }
-
-                None
-            };
-        }
+        let ui_hovered = self.update_ui(event_pump);
+        self.update_player(event_pump, ui_hovered)?;
 
         let timer = debug::Timer::new("getting update fns");
         let mut id_update_fn_pairs = Vec::new();
@@ -113,7 +98,7 @@ impl<'a> Game<'a> {
         Ok(false)
     }
 
-    fn update_player(&mut self) -> Result<()> {
+    fn update_player(&mut self, event_pump: &mut EventPump, ui_hovered: bool) -> Result<()> {
         let actions = self.ecs.get::<&Player>(self.player)?.action_state.clone();
 
         let speed =
@@ -127,16 +112,36 @@ impl<'a> Game<'a> {
             if actions.key("move_up")    { pos.move_y(-speed); }
         }
 
-        let selected =
-            if actions.key("attack") {
-                if let Ok(player) = self.ecs.get::<&Player>(self.player) {
-                    player.selected
-                } else { None }
-            } else { None };
+        if !ui_hovered {
+            let selected =
+                if actions.key("attack") {
+                    if let Ok(player) = self.ecs.get::<&Player>(self.player) {
+                        player.selected
+                    } else { None }
+                } else { None };
 
-        if let Some(selected) = selected {
-            handle_err("despawning selected entity",
-                self.ecs.despawn(selected).into());
+            if let Some(selected) = selected {
+                handle_err("despawning selected entity",
+                    self.ecs.despawn(selected).into());
+            }
+
+            if let Ok(mut player) = self.ecs.get::<&mut Player>(self.player) {
+                player.selected = 'block: {
+                    let mouse = event_pump.mouse_state();
+
+                    for i in (0..self.loaded.ids.len()).rev() {
+                        let id = self.loaded.ids[i];
+                        if id == self.player { continue }
+                        if let Ok(rect) = self.get_sdl_rect(id) {
+                            if rect.contains_point((mouse.x(), mouse.y())) {
+                                break 'block Some(id);
+                            }
+                        }
+                    }
+
+                    None
+                };
+            }
         }
 
         Ok(())
@@ -215,5 +220,27 @@ impl<'a> Game<'a> {
         }
 
         Ok(())
+    }
+
+    fn update_ui(&mut self, event_pump: &mut EventPump) -> bool {
+        use crate::ui::*;
+
+        // let mouse = event_pump.mouse_state();
+        // let mx = mouse.x();
+        // let my = mouse.y();
+        // let mouse_delta = (mx - self.last_mouse_pos.0, my - self.last_mouse_pos.1);
+
+        if let Some(mut inventory) = self.ui_handler.get_mut("inventory") {
+            if let Ok(mut player) = self.ecs.get::<&Player>(self.player) {
+                if player.action_state.key("toggle_inventory") {
+                    inventory.visible = !inventory.visible;
+                }
+            }
+        }
+
+        let ui_hovered = self.ui_handler.update(event_pump, self.screen_size);
+        // self.last_mouse_pos = (mx, my);
+
+        ui_hovered
     }
 }

@@ -4,13 +4,13 @@
 use crate::gameobjtype::GameObjectTypeBuilder;
 
 pub mod tree;
-pub mod player;
 pub mod test_tile;
 pub mod test;
+pub mod player;
 
 pub const TYPES: [GameObjectTypeBuilder; 4] = [
     tree::TYPE,
-    player::TYPE,
     test_tile::TYPE,
     test::TYPE,
+    player::TYPE,
 ];
