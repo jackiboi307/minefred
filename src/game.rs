@@ -3,12 +3,13 @@ mod render;
 mod update;
 
 use crate::prelude::*;
+use crate::utils::Counter;
 use crate::gameobjtype::*;
 use crate::components::*;
 use crate::event::ActionHandler;
 use crate::constants::*;
-use crate::utils::*;
 use crate::textures::Textures;
+use crate::ui::UIHandler;
 use crate::ui::tui;
 
 use sdl2::rect::Rect;
@@ -34,40 +35,44 @@ impl Loaded {
     }
 }
 
-pub struct Game<'a> {
-    ecs: ECSWorld,
-    types: GameObjectTypes,
-    textures: Textures<'a>,
-    font: tui::RenderedFont<'a>,
-    loaded: Loaded,
-    loaded_update_counter: Counter,
-    player: EntityId,
-    chunks: Vec<ChunkPos>,
-    player_chunk: ChunkPos,
-    tile_scale: u32,
-    screen_size: (i32, i32),
-    action_handler: ActionHandler,
-}
+gen_struct! { pub Game<'a> {
+    ecs: ECSWorld = ECSWorld::new(),
+    types: GameObjectTypes = GameObjectTypes::generate(),
+    textures: Textures<'a> = HashMap::new(),
+    font: tui::RenderedFont<'a> = tui::RenderedFont::empty(),
+    loaded: Loaded = Loaded::new(),
+    loaded_update_counter: Counter = Counter::new(60),
+    player: EntityId = EntityId::DANGLING,
+    chunks: Vec<ChunkPos> = Vec::new(),
+    player_chunk: ChunkPos = ChunkPos::new(0, 0),
+    tile_scale: u32 = 40,
+    screen_size: (i32, i32) = (0, 0),
+    action_handler: ActionHandler = ActionHandler::new(),
+    ui_handler: UIHandler = UIHandler::new(),
+    // last_mouse_pos: (i32, i32) = (0, 0),
+} pub new }
 
 impl<'a> Game<'a> {
-    pub fn new() -> Self {
-        let s = Self {
-            ecs: ECSWorld::new(),
-            types: GameObjectTypes::generate(),
-            textures: HashMap::new(),
-            font: tui::RenderedFont::empty(),
-            loaded: Loaded::new(),
-            loaded_update_counter: Counter::new(60),
-            player: EntityId::DANGLING,
-            chunks: Vec::new(),
-            player_chunk: ChunkPos::new(0, 0),
-            tile_scale: 40,
-            screen_size: (SCREEN_X.into(), SCREEN_Y.into()),
-            action_handler: ActionHandler::new(),
-        };
-
-        s
-    }
+    // pub fn new() -> Self {
+    //     let s = Self {
+    //         ecs: ECSWorld::new(),
+    //         types: GameObjectTypes::generate(),
+    //         textures: HashMap::new(),
+    //         font: tui::RenderedFont::empty(),
+    //         loaded: Loaded::new(),
+    //         loaded_update_counter: Counter::new(60),
+    //         player: EntityId::DANGLING,
+    //         chunks: Vec::new(),
+    //         player_chunk: ChunkPos::new(0, 0),
+    //         tile_scale: 40,
+    //         screen_size: (0, 0),
+    //         action_handler: ActionHandler::new(),
+    //         ui_handler: UIHandler::new(),
+    //         last_mouse_pos: (0, 0),
+    //     };
+    //
+    //     s
+    // }
 
     fn get_gameobjtype(&self, id: EntityId) -> &GameObjectType {
         let type_id = self.ecs.get::<&GameObjectTypeComponent>(id).unwrap();
